@@ -4,7 +4,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-__all__ = ["BalancedBCEWithLogitsLoss", "balanced_binary_cross_entropy_with_logits"]
+__all__ = ["BalancedBCEWithLogitsLoss",
+           "balanced_binary_cross_entropy_with_logits"]
 
 
 def balanced_binary_cross_entropy_with_logits(
@@ -31,8 +32,10 @@ def balanced_binary_cross_entropy_with_logits(
     pos_weight = torch.pow(neg_targets / (num_targets + 1e-7), gamma)
     neg_weight = 1.0 - pos_weight
 
-    pos_term = pos_weight.pow(gamma) * targets * torch.nn.functional.logsigmoid(logits)
-    neg_term = neg_weight.pow(gamma) * (1 - targets) * torch.nn.functional.logsigmoid(-logits)
+    pos_term = pos_weight.pow(gamma) * targets * \
+        torch.nn.functional.logsigmoid(logits)
+    neg_term = neg_weight.pow(gamma) * (1 - targets) * \
+        torch.nn.functional.logsigmoid(-logits)
 
     loss = -(pos_term + neg_term)
 

@@ -73,21 +73,26 @@ def uavid2rgb(mask):
 def get_args():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg("-i", "--image_path", type=str, default='data/uavid/uavid_test', help="Path to  huge image")
+    arg("-i", "--image_path", type=str,
+        default='data/uavid/uavid_test', help="Path to  huge image")
     arg("-c", "--config_path", type=Path, required=True, help="Path to  config")
-    arg("-o", "--output_path", type=Path, help="Path to save resulting masks.", required=True)
-    arg("-t", "--tta", help="Test time augmentation.", default="lr", choices=[None, "d4", "lr"])
+    arg("-o", "--output_path", type=Path,
+        help="Path to save resulting masks.", required=True)
+    arg("-t", "--tta", help="Test time augmentation.",
+        default="lr", choices=[None, "d4", "lr"])
     arg("-ph", "--patch-height", help="height of patch size", type=int, default=1152)
     arg("-pw", "--patch-width", help="width of patch size", type=int, default=1024)
     arg("-b", "--batch-size", help="batch size", type=int, default=2)
-    arg("-d", "--dataset", help="dataset", default="uavid", choices=["pv", "landcoverai", "uavid"])
+    arg("-d", "--dataset", help="dataset", default="uavid",
+        choices=["pv", "landcoverai", "uavid"])
     return parser.parse_args()
 
 
 def load_checkpoint(checkpoint_path, model):
     pretrained_dict = torch.load(checkpoint_path)['model_state_dict']
     model_dict = model.state_dict()
-    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    pretrained_dict = {k: v for k,
+                       v in pretrained_dict.items() if k in model_dict}
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
 
@@ -152,7 +157,8 @@ def main():
     # print(img_paths)
     patch_size = (args.patch_height, args.patch_width)
     config = py2cfg(args.config_path)
-    model = Supervision_Train.load_from_checkpoint(os.path.join(config.weights_path, config.test_weights_name+'.ckpt'), config=config)
+    model = Supervision_Train.load_from_checkpoint(os.path.join(
+        config.weights_path, config.test_weights_name+'.ckpt'), config=config)
 
     model.cuda(config.gpus[0])
     model.eval()
@@ -183,7 +189,8 @@ def main():
         if not os.path.exists(output_path):
             os.makedirs(output_path)
         for ext in ('*.tif', '*.png', '*.jpg'):
-            img_paths.extend(glob.glob(os.path.join(args.image_path, str(seq), 'Images', ext)))
+            img_paths.extend(glob.glob(os.path.join(
+                args.image_path, str(seq), 'Images', ext)))
         img_paths.sort()
         # print(img_paths)
         for img_path in img_paths:
@@ -192,7 +199,8 @@ def main():
             dataset, width_pad, height_pad, output_width, output_height, img_pad, img_shape = \
                 make_dataset_for_one_huge_image(img_path, patch_size)
             # print('img_padded', img_pad.shape)
-            output_mask = np.zeros(shape=(output_height, output_width), dtype=np.uint8)
+            output_mask = np.zeros(
+                shape=(output_height, output_width), dtype=np.uint8)
             output_tiles = []
             k = 0
             with torch.no_grad():
@@ -216,7 +224,8 @@ def main():
 
             for m in range(0, output_height, patch_size[0]):
                 for n in range(0, output_width, patch_size[1]):
-                    output_mask[m:m + patch_size[0], n:n + patch_size[1]] = output_tiles[k][0]
+                    output_mask[m:m + patch_size[0], n:n +
+                                patch_size[1]] = output_tiles[k][0]
                     k = k + 1
 
             output_mask = output_mask[-img_shape[0]:, -img_shape[1]:]

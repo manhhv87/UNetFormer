@@ -13,11 +13,13 @@ import random
 
 
 CLASSES = ('ImSurf', 'Building', 'LowVeg', 'Tree', 'Car', 'Clutter')
-PALETTE = [[255, 255, 255], [0, 0, 255], [0, 255, 255], [0, 255, 0], [255, 204, 0], [255, 0, 0]]
+PALETTE = [[255, 255, 255], [0, 0, 255], [0, 255, 255],
+           [0, 255, 0], [255, 204, 0], [255, 0, 0]]
 
 ORIGIN_IMG_SIZE = (1024, 1024)
 INPUT_IMG_SIZE = (1024, 1024)
 TEST_IMG_SIZE = (1024, 1024)
+
 
 def get_training_transform():
     train_transform = [
@@ -65,7 +67,8 @@ class PotsdamDataset(Dataset):
         self.mode = mode
         self.mosaic_ratio = mosaic_ratio
         self.img_size = img_size
-        self.img_ids = self.get_img_ids(self.data_root, self.img_dir, self.mask_dir)
+        self.img_ids = self.get_img_ids(
+            self.data_root, self.img_dir, self.mask_dir)
 
     def __getitem__(self, index):
         p_ratio = random.random()
@@ -96,14 +99,17 @@ class PotsdamDataset(Dataset):
 
     def load_img_and_mask(self, index):
         img_id = self.img_ids[index]
-        img_name = osp.join(self.data_root, self.img_dir, img_id + self.img_suffix)
-        mask_name = osp.join(self.data_root, self.mask_dir, img_id + self.mask_suffix)
+        img_name = osp.join(self.data_root, self.img_dir,
+                            img_id + self.img_suffix)
+        mask_name = osp.join(self.data_root, self.mask_dir,
+                             img_id + self.mask_suffix)
         img = Image.open(img_name).convert('RGB')
         mask = Image.open(mask_name).convert('L')
         return img, mask
 
     def load_mosaic_img_and_mask(self, index):
-        indexes = [index] + [random.randint(0, len(self.img_ids) - 1) for _ in range(3)]
+        indexes = [index] + \
+            [random.randint(0, len(self.img_ids) - 1) for _ in range(3)]
         img_a, mask_a = self.load_img_and_mask(indexes[0])
         img_b, mask_b = self.load_img_and_mask(indexes[1])
         img_c, mask_c = self.load_img_and_mask(indexes[2])
@@ -128,10 +134,14 @@ class PotsdamDataset(Dataset):
         crop_size_c = (offset_x, h - offset_y)
         crop_size_d = (w - offset_x, h - offset_y)
 
-        random_crop_a = albu.RandomCrop(width=crop_size_a[0], height=crop_size_a[1])
-        random_crop_b = albu.RandomCrop(width=crop_size_b[0], height=crop_size_b[1])
-        random_crop_c = albu.RandomCrop(width=crop_size_c[0], height=crop_size_c[1])
-        random_crop_d = albu.RandomCrop(width=crop_size_d[0], height=crop_size_d[1])
+        random_crop_a = albu.RandomCrop(
+            width=crop_size_a[0], height=crop_size_a[1])
+        random_crop_b = albu.RandomCrop(
+            width=crop_size_b[0], height=crop_size_b[1])
+        random_crop_c = albu.RandomCrop(
+            width=crop_size_c[0], height=crop_size_c[1])
+        random_crop_d = albu.RandomCrop(
+            width=crop_size_d[0], height=crop_size_d[1])
 
         croped_a = random_crop_a(image=img_a.copy(), mask=mask_a.copy())
         croped_b = random_crop_b(image=img_b.copy(), mask=mask_b.copy())

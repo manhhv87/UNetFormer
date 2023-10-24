@@ -36,10 +36,13 @@ def compute_normalization_fixed_point(activations: Tensor, t: float, num_iters: 
     normalized_activations = normalized_activations_step_0
 
     for _ in range(num_iters):
-        logt_partition = torch.sum(exp_t(normalized_activations, t), -1, keepdim=True)
-        normalized_activations = normalized_activations_step_0 * logt_partition.pow(1.0 - t)
+        logt_partition = torch.sum(
+            exp_t(normalized_activations, t), -1, keepdim=True)
+        normalized_activations = normalized_activations_step_0 * \
+            logt_partition.pow(1.0 - t)
 
-    logt_partition = torch.sum(exp_t(normalized_activations, t), -1, keepdim=True)
+    logt_partition = torch.sum(
+        exp_t(normalized_activations, t), -1, keepdim=True)
     normalization_constants = -log_t(1.0 / logt_partition, t) + mu
 
     return normalization_constants
@@ -61,15 +64,19 @@ def compute_normalization_binary_search(activations: Tensor, t: float, num_iters
     )
 
     shape_partition = activations.shape[:-1] + (1,)
-    lower = torch.zeros(shape_partition, dtype=activations.dtype, device=activations.device)
+    lower = torch.zeros(
+        shape_partition, dtype=activations.dtype, device=activations.device)
     upper = -log_t(1.0 / effective_dim, t) * torch.ones_like(lower)
 
     for _ in range(num_iters):
         logt_partition = (upper + lower) / 2.0
-        sum_probs = torch.sum(exp_t(normalized_activations - logt_partition, t), dim=-1, keepdim=True)
+        sum_probs = torch.sum(
+            exp_t(normalized_activations - logt_partition, t), dim=-1, keepdim=True)
         update = (sum_probs < 1.0).to(activations.dtype)
-        lower = torch.reshape(lower * update + (1.0 - update) * logt_partition, shape_partition)
-        upper = torch.reshape(upper * (1.0 - update) + update * logt_partition, shape_partition)
+        lower = torch.reshape(lower * update + (1.0 - update)
+                              * logt_partition, shape_partition)
+        upper = torch.reshape(upper * (1.0 - update) +
+                              update * logt_partition, shape_partition)
 
     logt_partition = (upper + lower) / 2.0
     return logt_partition + mu
@@ -83,9 +90,11 @@ class ComputeNormalization(torch.autograd.Function):
     @staticmethod
     def forward(ctx, activations, t, num_iters):
         if t < 1.0:
-            normalization_constants = compute_normalization_binary_search(activations, t, num_iters)
+            normalization_constants = compute_normalization_binary_search(
+                activations, t, num_iters)
         else:
-            normalization_constants = compute_normalization_fixed_point(activations, t, num_iters)
+            normalization_constants = compute_normalization_fixed_point(
+                activations, t, num_iters)
 
         ctx.save_for_backward(activations, normalization_constants)
         ctx.t = t
@@ -262,7 +271,8 @@ class BinaryBiTemperedLogisticLoss(nn.Module):
             shape of `predictions` tensor.
         """
         if predictions.size(1) != 1 or targets.size(1) != 1:
-            raise ValueError("Channel dimension for predictions and targets must be equal to 1")
+            raise ValueError(
+                "Channel dimension for predictions and targets must be equal to 1")
 
         loss = bi_tempered_logistic_loss(
             torch.cat([-predictions, predictions], dim=1).moveaxis(1, -1),

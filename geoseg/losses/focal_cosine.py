@@ -29,7 +29,8 @@ class FocalCosineLoss(nn.Module):
             reduction=self.reduction,
         )
 
-        cent_loss = F.cross_entropy(F.normalize(input), target, reduction="none")
+        cent_loss = F.cross_entropy(
+            F.normalize(input), target, reduction="none")
         pt = torch.exp(-cent_loss)
         focal_loss = self.alpha * (1 - pt) ** self.gamma * cent_loss
 

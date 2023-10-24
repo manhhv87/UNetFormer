@@ -53,8 +53,10 @@ def get_args():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg("-c", "--config_path", type=Path, required=True, help="Path to  config")
-    arg("-o", "--output_path", type=Path, help="Path where to save resulting masks.", required=True)
-    arg("-t", "--tta", help="Test time augmentation.", default=None, choices=[None, "d4", "lr"])
+    arg("-o", "--output_path", type=Path,
+        help="Path where to save resulting masks.", required=True)
+    arg("-t", "--tta", help="Test time augmentation.",
+        default=None, choices=[None, "d4", "lr"])
     arg("--rgb", help="whether output rgb images", action='store_true')
     return parser.parse_args()
 
@@ -86,7 +88,8 @@ def main():
                 tta.HorizontalFlip(),
                 tta.VerticalFlip(),
                 # tta.Rotate90(angles=[90]),
-                tta.Scale(scales=[0.75, 1.0, 1.25, 1.5], interpolation='bicubic', align_corners=False)
+                tta.Scale(scales=[0.75, 1.0, 1.25, 1.5],
+                          interpolation='bicubic', align_corners=False)
             ]
         )
         model = tta.SegmentationTTAWrapper(model, transforms)
@@ -114,15 +117,19 @@ def main():
 
             for i in range(raw_predictions.shape[0]):
                 mask = predictions[i].cpu().numpy()
-                evaluator.add_batch(pre_image=mask, gt_image=masks_true[i].cpu().numpy())
+                evaluator.add_batch(
+                    pre_image=mask, gt_image=masks_true[i].cpu().numpy())
                 mask_name = image_ids[i]
-                results.append((mask, str(args.output_path / mask_name), args.rgb))
+                results.append(
+                    (mask, str(args.output_path / mask_name), args.rgb))
     iou_per_class = evaluator.Intersection_over_Union()
     f1_per_class = evaluator.F1()
     OA = evaluator.OA()
     for class_name, class_iou, class_f1 in zip(config.classes, iou_per_class, f1_per_class):
-        print('F1_{}:{}, IOU_{}:{}'.format(class_name, class_f1, class_name, class_iou))
-    print('F1:{}, mIOU:{}, OA:{}'.format(np.nanmean(f1_per_class[:-1]), np.nanmean(iou_per_class[:-1]), OA))
+        print('F1_{}:{}, IOU_{}:{}'.format(
+            class_name, class_f1, class_name, class_iou))
+    print('F1:{}, mIOU:{}, OA:{}'.format(np.nanmean(
+        f1_per_class[:-1]), np.nanmean(iou_per_class[:-1]), OA))
     t0 = time.time()
     mpp.Pool(processes=mp.cpu_count()).map(img_writer, results)
     t1 = time.time()

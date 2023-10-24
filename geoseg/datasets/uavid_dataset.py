@@ -12,8 +12,10 @@ from PIL import Image
 import random
 from .transform import *
 
-CLASSES = ('Building', 'Road', 'Tree', 'LowVeg', 'Moving_Car',  'Static_Car', 'Human', 'Clutter')
-PALETTE = [[128, 0, 0], [128, 64, 128], [0, 128, 0], [128, 128, 0], [64, 0, 128], [192, 0, 192], [64, 64, 0], [0, 0, 0]]
+CLASSES = ('Building', 'Road', 'Tree', 'LowVeg',
+           'Moving_Car',  'Static_Car', 'Human', 'Clutter')
+PALETTE = [[128, 0, 0], [128, 64, 128], [0, 128, 0], [128, 128, 0],
+           [64, 0, 128], [192, 0, 192], [64, 64, 0], [0, 0, 0]]
 
 ORIGIN_IMG_SIZE = (1024, 1024)
 INPUT_IMG_SIZE = (1024, 1024)
@@ -24,7 +26,8 @@ def get_training_transform():
     train_transform = [
         albu.HorizontalFlip(p=0.5),
         albu.VerticalFlip(p=0.5),
-        albu.RandomBrightnessContrast(brightness_limit=0.25, contrast_limit=0.25, p=0.25),
+        albu.RandomBrightnessContrast(
+            brightness_limit=0.25, contrast_limit=0.25, p=0.25),
         albu.Normalize()
     ]
     return albu.Compose(train_transform)
@@ -66,7 +69,8 @@ class UAVIDDataset(Dataset):
         self.mode = mode
         self.mosaic_ratio = mosaic_ratio
         self.img_size = img_size
-        self.img_ids = self.get_img_ids(self.data_root, self.img_dir, self.mask_dir)
+        self.img_ids = self.get_img_ids(
+            self.data_root, self.img_dir, self.mask_dir)
 
     def __getitem__(self, index):
         p_ratio = random.random()
@@ -101,14 +105,17 @@ class UAVIDDataset(Dataset):
 
     def load_img_and_mask(self, index):
         img_id = self.img_ids[index]
-        img_name = osp.join(self.data_root, self.img_dir, img_id + self.img_suffix)
-        mask_name = osp.join(self.data_root, self.mask_dir, img_id + self.mask_suffix)
+        img_name = osp.join(self.data_root, self.img_dir,
+                            img_id + self.img_suffix)
+        mask_name = osp.join(self.data_root, self.mask_dir,
+                             img_id + self.mask_suffix)
         img = Image.open(img_name).convert('RGB')
         mask = Image.open(mask_name).convert('L')
         return img, mask
 
     def load_mosaic_img_and_mask(self, index):
-        indexes = [index] + [random.randint(0, len(self.img_ids) - 1) for _ in range(3)]
+        indexes = [index] + \
+            [random.randint(0, len(self.img_ids) - 1) for _ in range(3)]
         img_a, mask_a = self.load_img_and_mask(indexes[0])
         img_b, mask_b = self.load_img_and_mask(indexes[1])
         img_c, mask_c = self.load_img_and_mask(indexes[2])
@@ -133,10 +140,14 @@ class UAVIDDataset(Dataset):
         crop_size_c = (offset_x, h - offset_y)
         crop_size_d = (w - offset_x, h - offset_y)
 
-        random_crop_a = albu.RandomCrop(width=crop_size_a[0], height=crop_size_a[1])
-        random_crop_b = albu.RandomCrop(width=crop_size_b[0], height=crop_size_b[1])
-        random_crop_c = albu.RandomCrop(width=crop_size_c[0], height=crop_size_c[1])
-        random_crop_d = albu.RandomCrop(width=crop_size_d[0], height=crop_size_d[1])
+        random_crop_a = albu.RandomCrop(
+            width=crop_size_a[0], height=crop_size_a[1])
+        random_crop_b = albu.RandomCrop(
+            width=crop_size_b[0], height=crop_size_b[1])
+        random_crop_c = albu.RandomCrop(
+            width=crop_size_c[0], height=crop_size_c[1])
+        random_crop_d = albu.RandomCrop(
+            width=crop_size_d[0], height=crop_size_d[1])
 
         croped_a = random_crop_a(image=img_a.copy(), mask=mask_a.copy())
         croped_b = random_crop_b(image=img_b.copy(), mask=mask_b.copy())
@@ -180,7 +191,8 @@ class UAVIDDatasetV2(Dataset):
         self.class_interest = class_interest
         self.class_ratio = class_ratio
         self.img_size = img_size
-        self.img_ids = self.get_img_ids(self.data_root, self.img_dir, self.mask_dir)
+        self.img_ids = self.get_img_ids(
+            self.data_root, self.img_dir, self.mask_dir)
 
     def __getitem__(self, index):
         p_ratio = random.random()
@@ -215,14 +227,17 @@ class UAVIDDatasetV2(Dataset):
 
     def load_img_and_mask(self, index):
         img_id = self.img_ids[index]
-        img_name = osp.join(self.data_root, self.img_dir, img_id + self.img_suffix)
-        mask_name = osp.join(self.data_root, self.mask_dir, img_id + self.mask_suffix)
+        img_name = osp.join(self.data_root, self.img_dir,
+                            img_id + self.img_suffix)
+        mask_name = osp.join(self.data_root, self.mask_dir,
+                             img_id + self.mask_suffix)
         img = Image.open(img_name).convert('RGB')
         mask = Image.open(mask_name).convert('L')
         return img, mask
 
     def load_mosaic_img_and_mask(self, index):
-        indexes = [index] + [random.randint(0, len(self.img_ids) - 1) for _ in range(3)]
+        indexes = [index] + \
+            [random.randint(0, len(self.img_ids) - 1) for _ in range(3)]
         img_a, mask_a = self.load_img_and_mask(indexes[0])
         img_b, mask_b = self.load_img_and_mask(indexes[1])
         img_c, mask_c = self.load_img_and_mask(indexes[2])
@@ -247,11 +262,14 @@ class UAVIDDatasetV2(Dataset):
         crop_size_c = (offset_x, h - offset_y)
         crop_size_d = (w - offset_x, h - offset_y)
 
-        img_crop_a, mask_crop_a = self.tiny_object_crop(img_a, mask_a, self.num_classes, self.class_interest, self.class_ratio, crop_size_a)
-        img_crop_b, mask_crop_b = self.tiny_object_crop(img_b, mask_b, self.num_classes, self.class_interest, self.class_ratio, crop_size_b)
-        img_crop_c, mask_crop_c = self.tiny_object_crop(img_c, mask_c, self.num_classes, self.class_interest, self.class_ratio, crop_size_c)
-        img_crop_d, mask_crop_d = self.tiny_object_crop(img_d, mask_d, self.num_classes, self.class_interest, self.class_ratio, crop_size_d)
-
+        img_crop_a, mask_crop_a = self.tiny_object_crop(
+            img_a, mask_a, self.num_classes, self.class_interest, self.class_ratio, crop_size_a)
+        img_crop_b, mask_crop_b = self.tiny_object_crop(
+            img_b, mask_b, self.num_classes, self.class_interest, self.class_ratio, crop_size_b)
+        img_crop_c, mask_crop_c = self.tiny_object_crop(
+            img_c, mask_c, self.num_classes, self.class_interest, self.class_ratio, crop_size_c)
+        img_crop_d, mask_crop_d = self.tiny_object_crop(
+            img_d, mask_d, self.num_classes, self.class_interest, self.class_ratio, crop_size_d)
 
         top = np.concatenate((img_crop_a, img_crop_b), axis=1)
         bottom = np.concatenate((img_crop_c, img_crop_d), axis=1)
@@ -271,12 +289,14 @@ class UAVIDDatasetV2(Dataset):
     def tiny_object_crop(self, img, mask, num_classes, class_interest, class_ratio, crop_size):
         count = 0
         while True:
-            random_crop = albu.RandomCrop(width=crop_size[0], height=crop_size[1])
+            random_crop = albu.RandomCrop(
+                width=crop_size[0], height=crop_size[1])
             croped = random_crop(image=img.copy(), mask=mask.copy())
             img_crop, mask_crop = croped['image'], croped['mask']
             count += 1
             bins = np.array(range(num_classes + 1))
-            class_pixel_counts, _ = np.histogram(np.array(mask_crop), bins=bins)
+            class_pixel_counts, _ = np.histogram(
+                np.array(mask_crop), bins=bins)
             cf = class_pixel_counts / (crop_size[0] * crop_size[1])
             cf = np.array(cf)
             for c, f in zip(class_interest, class_ratio):
@@ -291,7 +311,8 @@ def show_img_mask_seg(seg_path, img_path, mask_path, start_seg_index):
     seg_list = os.listdir(seg_path)
     fig, ax = plt.subplots(2, 3, figsize=(18, 12))
     seg_list = seg_list[start_seg_index:start_seg_index+2]
-    patches = [mpatches.Patch(color=np.array(PALETTE[i])/255., label=CLASSES[i]) for i in range(len(CLASSES))]
+    patches = [mpatches.Patch(color=np.array(
+        PALETTE[i])/255., label=CLASSES[i]) for i in range(len(CLASSES))]
     for i in range(len(seg_list)):
         seg_id = seg_list[i]
         img_seg = cv2.imread(f'{seg_path}/{seg_id}', cv2.IMREAD_UNCHANGED)
@@ -316,14 +337,16 @@ def show_img_mask_seg(seg_path, img_path, mask_path, start_seg_index):
         ax[i, 2].set_axis_off()
         ax[i, 2].imshow(img_seg)
         ax[i, 2].set_title('Mask Predict ' + seg_id)
-        ax[i, 2].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize='large')
+        ax[i, 2].legend(handles=patches, bbox_to_anchor=(
+            1.05, 1), loc=2, borderaxespad=0., fontsize='large')
 
 
 def show_seg(seg_path, img_path, start_seg_index):
     seg_list = os.listdir(seg_path)
     fig, ax = plt.subplots(2, 2, figsize=(12, 12))
     seg_list = seg_list[start_seg_index:start_seg_index+2]
-    patches = [mpatches.Patch(color=np.array(PALETTE[i])/255., label=CLASSES[i]) for i in range(len(CLASSES))]
+    patches = [mpatches.Patch(color=np.array(
+        PALETTE[i])/255., label=CLASSES[i]) for i in range(len(CLASSES))]
     for i in range(len(seg_list)):
         seg_id = seg_list[i]
         img_seg = cv2.imread(f'{seg_path}/{seg_id}', cv2.IMREAD_UNCHANGED)
@@ -340,12 +363,14 @@ def show_seg(seg_path, img_path, start_seg_index):
         ax[i, 1].set_axis_off()
         ax[i, 1].imshow(img_seg)
         ax[i, 1].set_title('Seg IMAGE '+seg_id)
-        ax[i, 1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize='large')
+        ax[i, 1].legend(handles=patches, bbox_to_anchor=(
+            1.05, 1), loc=2, borderaxespad=0., fontsize='large')
 
 
 def show_mask(img, mask, img_id):
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 12))
-    patches = [mpatches.Patch(color=np.array(PALETTE[i])/255., label=CLASSES[i]) for i in range(len(CLASSES))]
+    patches = [mpatches.Patch(color=np.array(
+        PALETTE[i])/255., label=CLASSES[i]) for i in range(len(CLASSES))]
     mask = mask.astype(np.uint8)
     mask = Image.fromarray(mask).convert('P')
     mask.putpalette(np.array(PALETTE, dtype=np.uint8))
@@ -354,4 +379,5 @@ def show_mask(img, mask, img_id):
     ax1.set_title('RS IMAGE ' + str(img_id)+'.png')
     ax2.imshow(mask)
     ax2.set_title('Mask ' + str(img_id)+'.png')
-    ax2.legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize='large')
+    ax2.legend(handles=patches, bbox_to_anchor=(1.05, 1),
+               loc=2, borderaxespad=0., fontsize='large')

@@ -13,7 +13,8 @@ class SoftBCEWithLogitsLoss(nn.Module):
     - Support of label smoothing
     """
 
-    __constants__ = ["weight", "pos_weight", "reduction", "ignore_index", "smooth_factor"]
+    __constants__ = ["weight", "pos_weight",
+                     "reduction", "ignore_index", "smooth_factor"]
 
     def __init__(
         self, weight=None, ignore_index: Optional[int] = -100, reduction="mean", smooth_factor=None, pos_weight=None
@@ -27,7 +28,8 @@ class SoftBCEWithLogitsLoss(nn.Module):
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         if self.smooth_factor is not None:
-            soft_targets = ((1 - target) * self.smooth_factor + target * (1 - self.smooth_factor)).type_as(input)
+            soft_targets = ((1 - target) * self.smooth_factor +
+                            target * (1 - self.smooth_factor)).type_as(input)
         else:
             soft_targets = target.type_as(input)
 

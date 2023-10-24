@@ -44,11 +44,13 @@ def get_region_proportion(x: torch.Tensor, valid_mask: torch.Tensor = None) -> t
             cardinality = torch.einsum("bcwh->bc", valid_mask)
         else:
             x = torch.einsum("bcwh,bwh->bcwh", x, valid_mask)
-            cardinality = torch.einsum("bwh->b", valid_mask).unsqueeze(dim=1).repeat(1, x.shape[1])
+            cardinality = torch.einsum(
+                "bwh->b", valid_mask).unsqueeze(dim=1).repeat(1, x.shape[1])
     else:
         cardinality = x.shape[2] * x.shape[3]
 
-    region_proportion = (torch.einsum("bcwh->bc", x) + EPS) / (cardinality + EPS)
+    region_proportion = (torch.einsum("bcwh->bc", x) +
+                         EPS) / (cardinality + EPS)
 
     return region_proportion
 
@@ -58,6 +60,7 @@ class CompoundLoss(nn.Module):
     The base class for implementing a compound loss:
         l = l_1 + alpha * l_2
     """
+
     def __init__(self, mode: str = MULTICLASS_MODE,
                  alpha: float = 0.1,
                  factor: float = 5.,
@@ -86,7 +89,8 @@ class CompoundLoss(nn.Module):
         else:
             if labels.dim() == 3:
                 labels = labels.unsqueeze(dim=1)
-            loss = F.binary_cross_entropy_with_logits(inputs, labels.type(torch.float32))
+            loss = F.binary_cross_entropy_with_logits(
+                inputs, labels.type(torch.float32))
         return loss
 
     def adjust_alpha(self, epoch: int) -> None:
@@ -96,7 +100,8 @@ class CompoundLoss(nn.Module):
             curr_alpha = self.alpha
             self.alpha = min(self.alpha * self.factor, self.max_alpha)
             logger.info(
-                "CompoundLoss : Adjust the tradoff param alpha : {:.3g} -> {:.3g}".format(curr_alpha, self.alpha)
+                "CompoundLoss : Adjust the tradoff param alpha : {:.3g} -> {:.3g}".format(
+                    curr_alpha, self.alpha)
             )
 
     def get_gt_proportion(self, mode: str,
@@ -104,7 +109,8 @@ class CompoundLoss(nn.Module):
                           target_shape,
                           ignore_index: int = 255):
         if mode == MULTICLASS_MODE:
-            bin_labels, valid_mask = expand_onehot_labels(labels, target_shape, ignore_index)
+            bin_labels, valid_mask = expand_onehot_labels(
+                labels, target_shape, ignore_index)
         else:
             valid_mask = (labels >= 0) & (labels != ignore_index)
             if labels.dim() == 3:
@@ -131,12 +137,15 @@ class CrossEntropyWithL1(CompoundLoss):
     The loss can be described as:
         l = CE(X, Y) + alpha * |gt_region - prob_region|
     """
+
     def forward(self, inputs: torch.Tensor, labels: torch.Tensor):
         # ce term
         loss_ce = self.cross_entropy(inputs, labels)
         # regularization
-        gt_proportion, valid_mask = self.get_gt_proportion(self.mode, labels, inputs.shape)
-        pred_proportion = self.get_pred_proportion(self.mode, inputs, temp=self.temp, valid_mask=valid_mask)
+        gt_proportion, valid_mask = self.get_gt_proportion(
+            self.mode, labels, inputs.shape)
+        pred_proportion = self.get_pred_proportion(
+            self.mode, inputs, temp=self.temp, valid_mask=valid_mask)
         loss_reg = (pred_proportion - gt_proportion).abs().mean()
 
         loss = loss_ce + self.alpha * loss_reg
@@ -150,7 +159,8 @@ class CrossEntropyWithKL(CompoundLoss):
     The loss can be described as:
         l = CE(X, Y) + alpha * KL(gt_region || prob_region)
     """
-    def kl_div(self, p : torch.Tensor, q : torch.Tensor) -> torch.Tensor:
+
+    def kl_div(self, p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
         x = p * torch.log(p / q)
         x = torch.einsum("ij->i", x)
         return x
@@ -159,8 +169,10 @@ class CrossEntropyWithKL(CompoundLoss):
         # ce term
         loss_ce = self.cross_entropy(inputs, labels)
         # regularization
-        gt_proportion, valid_mask = self.get_gt_proportion(self.mode, labels, inputs.shape)
-        pred_proportion = self.get_pred_proportion(self.mode, inputs, temp=self.temp, valid_mask=valid_mask)
+        gt_proportion, valid_mask = self.get_gt_proportion(
+            self.mode, labels, inputs.shape)
+        pred_proportion = self.get_pred_proportion(
+            self.mode, inputs, temp=self.temp, valid_mask=valid_mask)
 
         if self.mode == BINARY_MODE:
             regularizer = (

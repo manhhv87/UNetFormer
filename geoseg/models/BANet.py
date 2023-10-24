@@ -53,24 +53,29 @@ class Attention(nn.Module):
 
         self.sr_ratio = sr_ratio
         if sr_ratio > 1:
-            self.sr = nn.Conv2d(dim, dim, kernel_size=sr_ratio+1, stride=sr_ratio, padding=sr_ratio // 2, groups=dim)
+            self.sr = nn.Conv2d(dim, dim, kernel_size=sr_ratio+1,
+                                stride=sr_ratio, padding=sr_ratio // 2, groups=dim)
             self.sr_norm = nn.LayerNorm(dim)
 
         self.apply_transform = apply_transform and num_heads > 1
         if self.apply_transform:
-            self.transform_conv = nn.Conv2d(self.num_heads, self.num_heads, kernel_size=1, stride=1)
+            self.transform_conv = nn.Conv2d(
+                self.num_heads, self.num_heads, kernel_size=1, stride=1)
             self.transform_norm = nn.InstanceNorm2d(self.num_heads)
 
     def forward(self, x, H, W):
         B, N, C = x.shape
-        q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        q = self.q(x).reshape(B, N, self.num_heads, C //
+                              self.num_heads).permute(0, 2, 1, 3)
         if self.sr_ratio > 1:
             x_ = x.permute(0, 2, 1).reshape(B, C, H, W)
             x_ = self.sr(x_).reshape(B, C, -1).permute(0, 2, 1)
             x_ = self.sr_norm(x_)
-            kv = self.kv(x_).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+            kv = self.kv(x_).reshape(B, -1, 2, self.num_heads,
+                                     C // self.num_heads).permute(2, 0, 3, 1, 4)
         else:
-            kv = self.kv(x).reshape(B, N, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+            kv = self.kv(x).reshape(B, N, 2, self.num_heads, C //
+                                    self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
@@ -97,10 +102,12 @@ class Block(nn.Module):
             dim, num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale,
             attn_drop=attn_drop, proj_drop=drop, sr_ratio=sr_ratio, apply_transform=apply_transform)
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.drop_path = DropPath(
+            drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim,
+                       act_layer=act_layer, drop=drop)
 
     def forward(self, x, H, W):
         x = x + self.drop_path(self.attn(self.norm1(x), H, W))
@@ -111,7 +118,8 @@ class Block(nn.Module):
 class PA(nn.Module):
     def __init__(self, dim):
         super().__init__()
-        self.pa_conv = nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim)
+        self.pa_conv = nn.Conv2d(
+            dim, dim, kernel_size=3, padding=1, groups=dim)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -121,7 +129,8 @@ class PA(nn.Module):
 class GL(nn.Module):
     def __init__(self, dim):
         super().__init__()
-        self.gl_conv = nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim)
+        self.gl_conv = nn.Conv2d(
+            dim, dim, kernel_size=3, padding=1, groups=dim)
 
     def forward(self, x):
         return x + self.gl_conv(x)
@@ -129,10 +138,12 @@ class GL(nn.Module):
 
 class PatchEmbed(nn.Module):
     """ Image to Patch Embedding"""
+
     def __init__(self, patch_size=16, in_ch=3, out_ch=768, with_pos=False):
         super().__init__()
         self.patch_size = to_2tuple(patch_size)
-        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size=patch_size+1, stride=patch_size, padding=patch_size // 2)
+        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size=patch_size+1,
+                              stride=patch_size, padding=patch_size // 2)
         self.norm = nn.BatchNorm2d(out_ch)
 
         self.with_pos = with_pos
@@ -154,11 +165,14 @@ class BasicStem(nn.Module):
     def __init__(self, in_ch=3, out_ch=64, with_pos=False):
         super(BasicStem, self).__init__()
         hidden_ch = out_ch // 2
-        self.conv1 = nn.Conv2d(in_ch, hidden_ch, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(
+            in_ch, hidden_ch, kernel_size=3, stride=2, padding=1, bias=False)
         self.norm1 = nn.BatchNorm2d(hidden_ch)
-        self.conv2 = nn.Conv2d(hidden_ch, hidden_ch, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(hidden_ch, hidden_ch,
+                               kernel_size=3, stride=1, padding=1, bias=False)
         self.norm2 = nn.BatchNorm2d(hidden_ch)
-        self.conv3 = nn.Conv2d(hidden_ch, out_ch, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv3 = nn.Conv2d(
+            hidden_ch, out_ch, kernel_size=3, stride=2, padding=1, bias=False)
 
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos
@@ -191,14 +205,19 @@ class ResT(nn.Module):
         self.depths = depths
         self.apply_transform = apply_transform
 
-        self.stem = BasicStem(in_ch=in_chans, out_ch=embed_dims[0], with_pos=True)
+        self.stem = BasicStem(
+            in_ch=in_chans, out_ch=embed_dims[0], with_pos=True)
 
-        self.patch_embed_2 = PatchEmbed(patch_size=2, in_ch=embed_dims[0], out_ch=embed_dims[1], with_pos=True)
-        self.patch_embed_3 = PatchEmbed(patch_size=2, in_ch=embed_dims[1], out_ch=embed_dims[2], with_pos=True)
-        self.patch_embed_4 = PatchEmbed(patch_size=2, in_ch=embed_dims[2], out_ch=embed_dims[3], with_pos=True)
+        self.patch_embed_2 = PatchEmbed(
+            patch_size=2, in_ch=embed_dims[0], out_ch=embed_dims[1], with_pos=True)
+        self.patch_embed_3 = PatchEmbed(
+            patch_size=2, in_ch=embed_dims[1], out_ch=embed_dims[2], with_pos=True)
+        self.patch_embed_4 = PatchEmbed(
+            patch_size=2, in_ch=embed_dims[2], out_ch=embed_dims[3], with_pos=True)
 
         # transformer encoder
-        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]
+        dpr = [x.item() for x in torch.linspace(
+            0, drop_path_rate, sum(depths))]
         cur = 0
 
         self.stage1 = nn.ModuleList([
@@ -311,7 +330,8 @@ class ConvBNReLU(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
 
 def l2_norm(x):
@@ -326,9 +346,12 @@ class LinearAttention(Module):
         self.l2_norm = l2_norm
         self.eps = eps
 
-        self.query_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.key_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.value_conv = Conv2d(in_channels=in_places, out_channels=in_places, kernel_size=1)
+        self.query_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
+        self.key_conv = Conv2d(in_channels=in_places,
+                               out_channels=in_places // scale, kernel_size=1)
+        self.value_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places, kernel_size=1)
 
     def forward(self, x):
         # Apply the feature map to the queries and keys
@@ -340,7 +363,9 @@ class LinearAttention(Module):
         Q = self.l2_norm(Q).permute(-3, -1, -2)
         K = self.l2_norm(K)
 
-        tailor_sum = 1 / (width * height + torch.einsum("bnc, bc->bn", Q, torch.sum(K, dim=-1) + self.eps))
+        tailor_sum = 1 / \
+            (width * height + torch.einsum("bnc, bc->bn",
+             Q, torch.sum(K, dim=-1) + self.eps))
         value_sum = torch.einsum("bcn->bc", V).unsqueeze(-1)
         value_sum = value_sum.expand(-1, chnnels, width * height)
 
@@ -373,7 +398,8 @@ class Output(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params = [], []
@@ -442,7 +468,8 @@ class FeatureAggregationModule(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params = [], []
@@ -476,7 +503,8 @@ class TexturePath(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params = [], []
@@ -561,7 +589,8 @@ class DependencyPathRes(nn.Module):
 
 class BANet(nn.Module):
     def __init__(self, num_classes=6, weight_path='pretrain_weights/rest_lite.pth'):
-        super(BANet, self).__init__()    # path of pretrained weight file of ResT-lite  or None, recommend use.
+        # path of pretrained weight file of ResT-lite  or None, recommend use.
+        super(BANet, self).__init__()
         self.name = 'BANet'
 
         self.cp = DependencyPath(weight_path=weight_path)
@@ -583,7 +612,8 @@ class BANet(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params, lr_mul_wd_params, lr_mul_nowd_params = [], [], [], []

@@ -20,7 +20,8 @@ def conv3otherRelu(in_planes, out_planes, kernel_size=None, stride=None, padding
     # 3x3 convolution with padding and relu
     if kernel_size is None:
         kernel_size = 3
-    assert isinstance(kernel_size, (int, tuple)), 'kernel_size is not in (int, tuple)!'
+    assert isinstance(kernel_size, (int, tuple)
+                      ), 'kernel_size is not in (int, tuple)!'
 
     if stride is None:
         stride = 1
@@ -31,7 +32,8 @@ def conv3otherRelu(in_planes, out_planes, kernel_size=None, stride=None, padding
     assert isinstance(padding, (int, tuple)), 'padding is not in (int, tuple)!'
 
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, bias=True),
+        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size,
+                  stride=stride, padding=padding, bias=True),
         nn.ReLU(inplace=True)  # inplace=True
     )
 
@@ -44,9 +46,12 @@ class PAM_Module(Module):
         self.softplus_feature = softplus_feature_map
         self.eps = eps
 
-        self.query_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.key_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.value_conv = Conv2d(in_channels=in_places, out_channels=in_places, kernel_size=1)
+        self.query_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
+        self.key_conv = Conv2d(in_channels=in_places,
+                               out_channels=in_places // scale, kernel_size=1)
+        self.value_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places, kernel_size=1)
 
     def forward(self, x):
         # Apply the feature map to the queries and keys
@@ -60,7 +65,8 @@ class PAM_Module(Module):
 
         KV = torch.einsum("bmn, bcn->bmc", K, V)
 
-        norm = 1 / torch.einsum("bnc, bc->bn", Q, torch.sum(K, dim=-1) + self.eps)
+        norm = 1 / torch.einsum("bnc, bc->bn", Q,
+                                torch.sum(K, dim=-1) + self.eps)
 
         # weight_value = torch.einsum("bnm, bmc, bn->bcn", Q, KV, norm)
         weight_value = torch.einsum("bnm, bmc, bn->bcn", Q, KV, norm)
@@ -80,7 +86,8 @@ class CAM_Module(Module):
         proj_query = x.view(batch_size, chnnels, -1)
         proj_key = x.view(batch_size, chnnels, -1).permute(0, 2, 1)
         energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy) - energy
+        energy_new = torch.max(
+            energy, -1, keepdim=True)[0].expand_as(energy) - energy
         attention = self.softmax(energy_new)
         proj_value = x.view(batch_size, chnnels, -1)
 
@@ -109,7 +116,8 @@ class DecoderBlock(nn.Module):
         self.norm1 = nn.BatchNorm2d(in_channels // 4)
         self.relu1 = nonlinearity
 
-        self.deconv2 = nn.ConvTranspose2d(in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1)
+        self.deconv2 = nn.ConvTranspose2d(
+            in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1)
         self.norm2 = nn.BatchNorm2d(in_channels // 4)
         self.relu2 = nonlinearity
 

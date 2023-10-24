@@ -11,6 +11,7 @@ import albumentations as albu
 
 import random
 
+
 def seed_everything(seed):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -22,14 +23,14 @@ def seed_everything(seed):
 
 
 Building = np.array([128, 0, 0])  # label 0
-Road = np.array([128, 64, 128]) # label 1
-Tree = np.array([0, 128, 0]) # label 2
-LowVeg = np.array([128, 128, 0]) # label 3
-Moving_Car = np.array([64, 0, 128]) # label 4
-Static_Car = np.array([192, 0, 192]) # label 5
-Human = np.array([64, 64, 0]) # label 6
-Clutter = np.array([0, 0, 0]) # label 7
-Boundary = np.array([255, 255, 255]) # label 255
+Road = np.array([128, 64, 128])  # label 1
+Tree = np.array([0, 128, 0])  # label 2
+LowVeg = np.array([128, 128, 0])  # label 3
+Moving_Car = np.array([64, 0, 128])  # label 4
+Static_Car = np.array([192, 0, 192])  # label 5
+Human = np.array([64, 64, 0])  # label 6
+Clutter = np.array([0, 0, 0])  # label 7
+Boundary = np.array([255, 255, 255])  # label 255
 
 num_classes = 8
 
@@ -38,8 +39,10 @@ num_classes = 8
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", default="data/uavid/uavid_train_val")
-    parser.add_argument("--output-img-dir", default="data/uavid/train_val/images")
-    parser.add_argument("--output-mask-dir", default="data/uavid/train_val/masks")
+    parser.add_argument("--output-img-dir",
+                        default="data/uavid/train_val/images")
+    parser.add_argument("--output-mask-dir",
+                        default="data/uavid/train_val/masks")
     parser.add_argument("--mode", type=str, default='train')
     parser.add_argument("--split-size-h", type=int, default=1024)
     parser.add_argument("--split-size-w", type=int, default=1024)
@@ -103,29 +106,35 @@ def padifneeded(image, mask):
                            border_mode=0, value=[0, 0, 0], mask_value=[255, 255, 255])(image=image, mask=mask)
     # pad = albu.PadIfNeeded(min_height=h, min_width=w)(image=image, mask=mask)
     img_pad, mask_pad = pad['image'], pad['mask']
-    assert img_pad.shape[0] == 2048 or img_pad.shape[1] == 4096, print(img_pad.shape)
+    assert img_pad.shape[0] == 2048 or img_pad.shape[1] == 4096, print(
+        img_pad.shape)
     # print(img_pad.shape)
     return img_pad, mask_pad
 
 
 def patch_format(inp):
-    (input_dir, seq, imgs_output_dir, masks_output_dir,  mode, split_size, stride) = inp
-    img_paths = glob.glob(os.path.join(input_dir, str(seq), 'Images',  "*.png"))
-    mask_paths = glob.glob(os.path.join(input_dir, str(seq), 'Labels', "*.png"))
+    (input_dir, seq, imgs_output_dir,
+     masks_output_dir,  mode, split_size, stride) = inp
+    img_paths = glob.glob(os.path.join(
+        input_dir, str(seq), 'Images',  "*.png"))
+    mask_paths = glob.glob(os.path.join(
+        input_dir, str(seq), 'Labels', "*.png"))
     for img_path, mask_path in zip(img_paths, mask_paths):
         img = cv2.imread(img_path, cv2.IMREAD_COLOR)
         mask = cv2.imread(mask_path, cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
         id = os.path.splitext(os.path.basename(img_path))[0]
-        assert img.shape == mask.shape and img.shape[0] == 2160, print(img.shape)
+        assert img.shape == mask.shape and img.shape[0] == 2160, print(
+            img.shape)
         assert img.shape[1] == 3840 or img.shape[1] == 4096, print(img.shape)
         img, mask = padifneeded(img.copy(), mask.copy())
 
         # print(img_path)
         # print(img.size, mask.size)
         # img and mask shape: WxHxC
-        image_list, mask_list = image_augment(image=img.copy(), mask=mask.copy(), mode=mode)
+        image_list, mask_list = image_augment(
+            image=img.copy(), mask=mask.copy(), mode=mode)
         assert len(image_list) == len(mask_list)
         for m in range(len(image_list)):
             k = 0
@@ -135,15 +144,19 @@ def patch_format(inp):
             assert img.shape[0] == mask.shape[0] and img.shape[1] == mask.shape[1]
             for y in range(0, img.shape[0], stride[0]):
                 for x in range(0, img.shape[1], stride[1]):
-                    img_tile_cut = img[y:y + split_size[0], x:x + split_size[1]]
-                    mask_tile_cut = mask[y:y + split_size[0], x:x + split_size[1]]
+                    img_tile_cut = img[y:y +
+                                       split_size[0], x:x + split_size[1]]
+                    mask_tile_cut = mask[y:y +
+                                         split_size[0], x:x + split_size[1]]
                     img_tile, mask_tile = img_tile_cut, mask_tile_cut
 
                     if img_tile.shape[0] == split_size[0] and img_tile.shape[1] == split_size[1] \
                             and mask_tile.shape[0] == split_size[0] and mask_tile.shape[1] == split_size[1]:
                         if mode == 'train':
-                            out_img_path = os.path.join(imgs_output_dir, "{}_{}_{}_{}.png".format(seq, id, m, k))
-                            img_tile = cv2.cvtColor(img_tile, cv2.COLOR_RGB2BGR)
+                            out_img_path = os.path.join(
+                                imgs_output_dir, "{}_{}_{}_{}.png".format(seq, id, m, k))
+                            img_tile = cv2.cvtColor(
+                                img_tile, cv2.COLOR_RGB2BGR)
                             cv2.imwrite(out_img_path, img_tile)
                             # print(img_tile.shape)
 
@@ -151,11 +164,14 @@ def patch_format(inp):
                                                          "{}_{}_{}_{}.png".format(seq, id, m, k))
                             cv2.imwrite(out_mask_path, mask_tile)
                         else:
-                            img_tile = cv2.cvtColor(img_tile, cv2.COLOR_RGB2BGR)
-                            out_img_path = os.path.join(imgs_output_dir,  "{}_{}_{}_{}.png".format(seq, id, m, k))
+                            img_tile = cv2.cvtColor(
+                                img_tile, cv2.COLOR_RGB2BGR)
+                            out_img_path = os.path.join(
+                                imgs_output_dir,  "{}_{}_{}_{}.png".format(seq, id, m, k))
                             cv2.imwrite(out_img_path, img_tile)
 
-                            out_mask_path = os.path.join(masks_output_dir,  "{}_{}_{}_{}.png".format(seq, id, m, k))
+                            out_mask_path = os.path.join(
+                                masks_output_dir,  "{}_{}_{}_{}.png".format(seq, id, m, k))
                             cv2.imwrite(out_mask_path, mask_tile)
 
                     k += 1
@@ -190,5 +206,3 @@ if __name__ == "__main__":
     t1 = time.time()
     split_time = t1 - t0
     print('images spliting spends: {} s'.format(split_time))
-
-

@@ -15,7 +15,8 @@ class ConfigDict(Dict):
         try:
             value = super().__getattr__(name)
         except KeyError:
-            ex = AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+            ex = AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'")
         else:
             return value
         raise ex
@@ -42,7 +43,8 @@ def py2dict(file_path: Union[str, Path]) -> dict:
     file_path = Path(file_path).absolute()
 
     if file_path.suffix != ".py":
-        raise TypeError(f"Only Py file can be parsed, but got {file_path.name} instead.")
+        raise TypeError(
+            f"Only Py file can be parsed, but got {file_path.name} instead.")
 
     if not file_path.exists():
         raise FileExistsError(f"There is no file at the path {file_path}")
@@ -58,7 +60,8 @@ def py2dict(file_path: Union[str, Path]) -> dict:
 
     mod = import_module(module_name)
     sys.path.pop(0)
-    cfg_dict = {name: value for name, value in mod.__dict__.items() if not name.startswith("__")}
+    cfg_dict = {name: value for name, value in mod.__dict__.items()
+                if not name.startswith("__")}
 
     return cfg_dict
 

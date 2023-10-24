@@ -29,6 +29,7 @@ class RandomCrop(object):
     A random crop is taken such that the crop fits within the image.
     If a centroid is passed in, the crop must intersect the centroid.
     """
+
     def __init__(self, size=512, ignore_index=12, nopad=True):
 
         if isinstance(size, numbers.Number):
@@ -65,7 +66,8 @@ class RandomCrop(object):
             border = (pad_w, pad_h, pad_w, pad_h)
             if pad_h or pad_w:
                 img = ImageOps.expand(img, border=border, fill=self.pad_color)
-                mask = ImageOps.expand(mask, border=border, fill=self.ignore_index)
+                mask = ImageOps.expand(
+                    mask, border=border, fill=self.ignore_index)
                 w, h = img.size
 
         if centroid is not None:
@@ -104,11 +106,13 @@ class PadImage(object):
         if w > tw or h > th:
             wpercent = (tw / float(w))
             target_h = int((float(img.size[1]) * float(wpercent)))
-            img, mask = img.resize((tw, target_h), Image.BICUBIC), mask.resize((tw, target_h), Image.NEAREST)
+            img, mask = img.resize((tw, target_h), Image.BICUBIC), mask.resize(
+                (tw, target_h), Image.NEAREST)
 
         w, h = img.size
         img = ImageOps.expand(img, border=(0, 0, tw - w, th - h), fill=0)
-        mask = ImageOps.expand(mask, border=(0, 0, tw - w, th - h), fill=self.ignore_index)
+        mask = ImageOps.expand(mask, border=(
+            0, 0, tw - w, th - h), fill=self.ignore_index)
 
         return img, mask
 
@@ -178,11 +182,11 @@ class RandomScale(object):
 
 class ColorJitter(object):
     def __init__(self, brightness=0.5, contrast=0.5, saturation=0.5):
-        if not brightness is None and brightness>0:
+        if not brightness is None and brightness > 0:
             self.brightness = [max(1-brightness, 0), 1+brightness]
-        if not contrast is None and contrast>0:
+        if not contrast is None and contrast > 0:
             self.contrast = [max(1-contrast, 0), 1+contrast]
-        if not saturation is None and saturation>0:
+        if not saturation is None and saturation > 0:
             self.saturation = [max(1-saturation, 0), 1+saturation]
 
     def __call__(self, img, mask=None):
@@ -205,7 +209,8 @@ class SmartCropV1(object):
         self.crop_size = crop_size
         self.max_ratio = max_ratio
         self.ignore_index = ignore_index
-        self.crop = RandomCrop(crop_size, ignore_index=ignore_index, nopad=nopad)
+        self.crop = RandomCrop(
+            crop_size, ignore_index=ignore_index, nopad=nopad)
 
     def __call__(self, img, mask):
         assert img.size == mask.size
@@ -235,7 +240,8 @@ class SmartCropV2(object):
         self.class_ratio = class_ratio
         self.max_ratio = max_ratio
         self.ignore_index = ignore_index
-        self.crop = RandomCrop(crop_size, ignore_index=ignore_index, nopad=nopad)
+        self.crop = RandomCrop(
+            crop_size, ignore_index=ignore_index, nopad=nopad)
 
     def __call__(self, img, mask):
         assert img.size == mask.size
@@ -244,7 +250,8 @@ class SmartCropV2(object):
             img_crop, mask_crop = self.crop(img.copy(), mask.copy())
             count += 1
             bins = np.array(range(self.num_classes + 1))
-            class_pixel_counts, _ = np.histogram(np.array(mask_crop), bins=bins)
+            class_pixel_counts, _ = np.histogram(
+                np.array(mask_crop), bins=bins)
             cf = class_pixel_counts / (self.crop_size * self.crop_size)
             cf = np.array(cf)
             for c, f in zip(self.class_interest, self.class_ratio):

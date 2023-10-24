@@ -26,7 +26,8 @@ def seed_everything(seed):
 def get_args():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg("-c", "--config_path", type=Path, help="Path to the config.", required=True)
+    arg("-c", "--config_path", type=Path,
+        help="Path to the config.", required=True)
     return parser.parse_args()
 
 
@@ -59,25 +60,31 @@ class Supervision_Train(pl.LightningModule):
 
         pre_mask = pre_mask.argmax(dim=1)
         for i in range(mask.shape[0]):
-            self.metrics_train.add_batch(mask[i].cpu().numpy(), pre_mask[i].cpu().numpy())
+            self.metrics_train.add_batch(
+                mask[i].cpu().numpy(), pre_mask[i].cpu().numpy())
 
         return {"loss": loss}
 
     def on_train_epoch_end(self):
         if 'vaihingen' in self.config.log_name:
-            mIoU = np.nanmean(self.metrics_train.Intersection_over_Union()[:-1])
+            mIoU = np.nanmean(
+                self.metrics_train.Intersection_over_Union()[:-1])
             F1 = np.nanmean(self.metrics_train.F1()[:-1])
         elif 'potsdam' in self.config.log_name:
-            mIoU = np.nanmean(self.metrics_train.Intersection_over_Union()[:-1])
+            mIoU = np.nanmean(
+                self.metrics_train.Intersection_over_Union()[:-1])
             F1 = np.nanmean(self.metrics_train.F1()[:-1])
         elif 'whubuilding' in self.config.log_name:
-            mIoU = np.nanmean(self.metrics_train.Intersection_over_Union()[:-1])
+            mIoU = np.nanmean(
+                self.metrics_train.Intersection_over_Union()[:-1])
             F1 = np.nanmean(self.metrics_train.F1()[:-1])
         elif 'massbuilding' in self.config.log_name:
-            mIoU = np.nanmean(self.metrics_train.Intersection_over_Union()[:-1])
+            mIoU = np.nanmean(
+                self.metrics_train.Intersection_over_Union()[:-1])
             F1 = np.nanmean(self.metrics_train.F1()[:-1])
         elif 'cropland' in self.config.log_name:
-            mIoU = np.nanmean(self.metrics_train.Intersection_over_Union()[:-1])
+            mIoU = np.nanmean(
+                self.metrics_train.Intersection_over_Union()[:-1])
             F1 = np.nanmean(self.metrics_train.F1()[:-1])
         else:
             mIoU = np.nanmean(self.metrics_train.Intersection_over_Union())
@@ -104,7 +111,8 @@ class Supervision_Train(pl.LightningModule):
         pre_mask = nn.Softmax(dim=1)(prediction)
         pre_mask = pre_mask.argmax(dim=1)
         for i in range(mask.shape[0]):
-            self.metrics_val.add_batch(mask[i].cpu().numpy(), pre_mask[i].cpu().numpy())
+            self.metrics_val.add_batch(
+                mask[i].cpu().numpy(), pre_mask[i].cpu().numpy())
 
         loss_val = self.loss(prediction, mask)
         return {"loss_val": loss_val}
@@ -174,7 +182,8 @@ def main():
 
     model = Supervision_Train(config)
     if config.pretrained_ckpt_path:
-        model = Supervision_Train.load_from_checkpoint(config.pretrained_ckpt_path, config=config)
+        model = Supervision_Train.load_from_checkpoint(
+            config.pretrained_ckpt_path, config=config)
 
     trainer = pl.Trainer(devices=config.gpus, max_epochs=config.max_epoch, accelerator='auto',
                          check_val_every_n_epoch=config.check_val_every_n_epoch,
@@ -184,4 +193,4 @@ def main():
 
 
 if __name__ == "__main__":
-   main()
+    main()

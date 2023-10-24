@@ -9,7 +9,8 @@ def conv3otherRelu(in_planes, out_planes, kernel_size=None, stride=None, padding
     # 3x3 convolution with padding and relu
     if kernel_size is None:
         kernel_size = 3
-    assert isinstance(kernel_size, (int, tuple)), 'kernel_size is not in (int, tuple)!'
+    assert isinstance(kernel_size, (int, tuple)
+                      ), 'kernel_size is not in (int, tuple)!'
 
     if stride is None:
         stride = 1
@@ -20,7 +21,8 @@ def conv3otherRelu(in_planes, out_planes, kernel_size=None, stride=None, padding
     assert isinstance(padding, (int, tuple)), 'padding is not in (int, tuple)!'
 
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, bias=True),
+        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size,
+                  stride=stride, padding=padding, bias=True),
         nn.ReLU(inplace=True)  # inplace=True
     )
 
@@ -37,13 +39,16 @@ class Attention(Module):
         self.l2_norm = l2_norm
         self.eps = eps
 
-        self.query_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.key_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.value_conv = Conv2d(in_channels=in_places, out_channels=in_places, kernel_size=1)
+        self.query_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
+        self.key_conv = Conv2d(in_channels=in_places,
+                               out_channels=in_places // scale, kernel_size=1)
+        self.value_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places, kernel_size=1)
 
     def forward(self, x):
         # Apply the feature map to the queries and keys
-        batch_size, chnnels, height, width  = x.shape
+        batch_size, chnnels, height, width = x.shape
         Q = self.query_conv(x).view(batch_size, -1, width * height)
         K = self.key_conv(x).view(batch_size, -1, width * height)
         V = self.value_conv(x).view(batch_size, -1, width * height)
@@ -51,7 +56,9 @@ class Attention(Module):
         Q = self.l2_norm(Q).permute(-3, -1, -2)
         K = self.l2_norm(K)
 
-        tailor_sum = 1 / (width * height + torch.einsum("bnc, bc->bn", Q, torch.sum(K, dim=-1) + self.eps))
+        tailor_sum = 1 / \
+            (width * height + torch.einsum("bnc, bc->bn",
+             Q, torch.sum(K, dim=-1) + self.eps))
         value_sum = torch.einsum("bcn->bc", V).unsqueeze(-1)
         value_sum = value_sum.expand(-1, chnnels, width * height)
 
@@ -87,7 +94,8 @@ class ConvBNReLU(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
 
 class UpSample(nn.Module):
@@ -128,7 +136,8 @@ class Output(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params = [], []
@@ -235,7 +244,8 @@ class SpatialPath(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params = [], []
@@ -269,7 +279,8 @@ class FeatureAggregationModule(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params = [], []
@@ -314,7 +325,8 @@ class ABCNet(nn.Module):
         for ly in self.children():
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
-                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+                if not ly.bias is None:
+                    nn.init.constant_(ly.bias, 0)
 
     def get_params(self):
         wd_params, nowd_params, lr_mul_wd_params, lr_mul_nowd_params = [], [], [], []

@@ -10,7 +10,8 @@ def conv3otherRelu(in_planes, out_planes, kernel_size=None, stride=None, padding
     # 3x3 convolution with padding and relu
     if kernel_size is None:
         kernel_size = 3
-    assert isinstance(kernel_size, (int, tuple)), 'kernel_size is not in (int, tuple)!'
+    assert isinstance(kernel_size, (int, tuple)
+                      ), 'kernel_size is not in (int, tuple)!'
 
     if stride is None:
         stride = 1
@@ -21,7 +22,8 @@ def conv3otherRelu(in_planes, out_planes, kernel_size=None, stride=None, padding
     assert isinstance(padding, (int, tuple)), 'padding is not in (int, tuple)!'
 
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, bias=True),
+        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size,
+                  stride=stride, padding=padding, bias=True),
         nn.ReLU(inplace=True)  # inplace=True
     )
 
@@ -63,9 +65,12 @@ class Attention(Module):
         self.l2_norm = l2_norm
         self.eps = eps
 
-        self.query_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.key_conv = Conv2d(in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
-        self.value_conv = Conv2d(in_channels=in_places, out_channels=in_places, kernel_size=1)
+        self.query_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places // scale, kernel_size=1)
+        self.key_conv = Conv2d(in_channels=in_places,
+                               out_channels=in_places // scale, kernel_size=1)
+        self.value_conv = Conv2d(
+            in_channels=in_places, out_channels=in_places, kernel_size=1)
 
     def forward(self, x):
         # Apply the feature map to the queries and keys
@@ -77,7 +82,9 @@ class Attention(Module):
         Q = self.l2_norm(Q).permute(-3, -1, -2)
         K = self.l2_norm(K)
 
-        tailor_sum = 1 / (width * height + torch.einsum("bnc, bc->bn", Q, torch.sum(K, dim=-1) + self.eps))
+        tailor_sum = 1 / \
+            (width * height + torch.einsum("bnc, bc->bn",
+             Q, torch.sum(K, dim=-1) + self.eps))
         value_sum = torch.einsum("bcn->bc", V).unsqueeze(-1)
         value_sum = value_sum.expand(-1, chnnels, width * height)
 
@@ -118,14 +125,16 @@ class Conv3x3GNReLU(nn.Module):
     def forward(self, x):
         x = self.block(x)
         if self.upsample:
-            x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=True)
+            x = F.interpolate(x, scale_factor=2,
+                              mode='bilinear', align_corners=True)
         return x
 
 
 class FPNBlock(nn.Module):
     def __init__(self, pyramid_channels, skip_channels):
         super().__init__()
-        self.skip_conv = nn.Conv2d(skip_channels, pyramid_channels, kernel_size=1)
+        self.skip_conv = nn.Conv2d(
+            skip_channels, pyramid_channels, kernel_size=1)
 
     def forward(self, x):
         x, skip = x
@@ -141,12 +150,14 @@ class SegmentationBlock(nn.Module):
         super().__init__()
 
         blocks = [
-            Conv3x3GNReLU(in_channels, out_channels, upsample=bool(n_upsamples))
+            Conv3x3GNReLU(in_channels, out_channels,
+                          upsample=bool(n_upsamples))
         ]
 
         if n_upsamples > 1:
             for _ in range(1, n_upsamples):
-                blocks.append(Conv3x3GNReLU(out_channels, out_channels, upsample=True))
+                blocks.append(Conv3x3GNReLU(
+                    out_channels, out_channels, upsample=True))
 
         self.block = nn.Sequential(*blocks)
 
@@ -169,25 +180,33 @@ class FPN(nn.Module):
         self.base_model = models.resnet34(pretrained=True)
         self.base_layers = list(self.base_model.children())
         # ==> encoder layers
-        self.layer_down0 = nn.Sequential(*self.base_layers[:3])  # size=(N, 64, x.H/2, x.W/2)
-        self.layer_down1 = nn.Sequential(*self.base_layers[3:5])  # size=(N, 64, x.H/4, x.W/4)
+        self.layer_down0 = nn.Sequential(
+            *self.base_layers[:3])  # size=(N, 64, x.H/2, x.W/2)
+        self.layer_down1 = nn.Sequential(
+            *self.base_layers[3:5])  # size=(N, 64, x.H/4, x.W/4)
         self.layer_down2 = self.base_layers[5]  # size=(N, 128, x.H/8, x.W/8)
         self.layer_down3 = self.base_layers[6]  # size=(N, 256, x.H/16, x.W/16)
         self.layer_down4 = self.base_layers[7]  # size=(N, 512, x.H/32, x.W/32)
 
-        self.conv1 = nn.Conv2d(encoder_channels[0], pyramid_channels, kernel_size=(1, 1))
+        self.conv1 = nn.Conv2d(
+            encoder_channels[0], pyramid_channels, kernel_size=(1, 1))
 
         self.p4 = FPNBlock(pyramid_channels, encoder_channels[1])
         self.p3 = FPNBlock(pyramid_channels, encoder_channels[2])
         self.p2 = FPNBlock(pyramid_channels, encoder_channels[3])
 
-        self.s5 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=3)
-        self.s4 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=2)
-        self.s3 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=1)
-        self.s2 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=0)
+        self.s5 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=3)
+        self.s4 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=2)
+        self.s3 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=1)
+        self.s2 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=0)
 
         self.dropout = nn.Dropout2d(p=dropout, inplace=True)
-        self.final_conv = nn.Conv2d(segmentation_channels, class_num, kernel_size=1, padding=0)
+        self.final_conv = nn.Conv2d(
+            segmentation_channels, class_num, kernel_size=1, padding=0)
 
     def forward(self, x):
         # ==> get encoder features
@@ -213,7 +232,8 @@ class FPN(nn.Module):
         x = self.dropout(x)
         x = self.final_conv(x)
 
-        x = F.interpolate(x, scale_factor=4, mode='bilinear', align_corners=True)
+        x = F.interpolate(x, scale_factor=4, mode='bilinear',
+                          align_corners=True)
         return x
 
 
@@ -232,25 +252,34 @@ class A2FPN(nn.Module):
         self.base_model = models.resnet18(pretrained=True)
         self.base_layers = list(self.base_model.children())
         # ==> encoder layers
-        self.layer_down0 = nn.Sequential(*self.base_layers[:3])  # size=(N, 64, x.H/2, x.W/2)
-        self.layer_down1 = nn.Sequential(*self.base_layers[3:5])  # size=(N, 64, x.H/4, x.W/4)
+        self.layer_down0 = nn.Sequential(
+            *self.base_layers[:3])  # size=(N, 64, x.H/2, x.W/2)
+        self.layer_down1 = nn.Sequential(
+            *self.base_layers[3:5])  # size=(N, 64, x.H/4, x.W/4)
         self.layer_down2 = self.base_layers[5]  # size=(N, 128, x.H/8, x.W/8)
         self.layer_down3 = self.base_layers[6]  # size=(N, 256, x.H/16, x.W/16)
         self.layer_down4 = self.base_layers[7]  # size=(N, 512, x.H/32, x.W/32)
 
-        self.conv1 = nn.Conv2d(encoder_channels[0], pyramid_channels, kernel_size=(1, 1))
+        self.conv1 = nn.Conv2d(
+            encoder_channels[0], pyramid_channels, kernel_size=(1, 1))
 
         self.p4 = FPNBlock(pyramid_channels, encoder_channels[1])
         self.p3 = FPNBlock(pyramid_channels, encoder_channels[2])
         self.p2 = FPNBlock(pyramid_channels, encoder_channels[3])
 
-        self.s5 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=3)
-        self.s4 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=2)
-        self.s3 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=1)
-        self.s2 = SegmentationBlock(pyramid_channels, segmentation_channels, n_upsamples=0)
+        self.s5 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=3)
+        self.s4 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=2)
+        self.s3 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=1)
+        self.s2 = SegmentationBlock(
+            pyramid_channels, segmentation_channels, n_upsamples=0)
 
-        self.attention = AttentionAggregationModule(segmentation_channels * 4, segmentation_channels * 4)
-        self.final_conv = nn.Conv2d(segmentation_channels * 4, class_num, kernel_size=1, padding=0)
+        self.attention = AttentionAggregationModule(
+            segmentation_channels * 4, segmentation_channels * 4)
+        self.final_conv = nn.Conv2d(
+            segmentation_channels * 4, class_num, kernel_size=1, padding=0)
         self.dropout = nn.Dropout2d(p=dropout, inplace=True)
 
     def forward(self, x):
@@ -274,7 +303,7 @@ class A2FPN(nn.Module):
 
         out = self.dropout(self.attention(s5, s4, s3, s2))
         out = self.final_conv(out)
-        out = F.interpolate(out, scale_factor=4, mode='bilinear', align_corners=True)
+        out = F.interpolate(out, scale_factor=4,
+                            mode='bilinear', align_corners=True)
 
         return out
-

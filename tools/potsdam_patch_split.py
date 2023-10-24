@@ -27,12 +27,12 @@ def seed_everything(seed):
 
 
 ImSurf = np.array([255, 255, 255])  # label 0
-Building = np.array([255, 0, 0]) # label 1
-LowVeg = np.array([255, 255, 0]) # label 2
-Tree = np.array([0, 255, 0]) # label 3
-Car = np.array([0, 255, 255]) # label 4
-Clutter = np.array([0, 0, 255]) # label 5
-Boundary = np.array([0, 0, 0]) # label 6
+Building = np.array([255, 0, 0])  # label 1
+LowVeg = np.array([255, 255, 0])  # label 2
+Tree = np.array([0, 255, 0])  # label 3
+Car = np.array([0, 255, 255])  # label 4
+Clutter = np.array([0, 0, 255])  # label 5
+Boundary = np.array([0, 0, 0])  # label 6
 num_classes = 6
 
 
@@ -41,11 +41,14 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--img-dir", default="data/potsdam/train_images")
     parser.add_argument("--mask-dir", default="data/potsdam/train_masks")
-    parser.add_argument("--output-img-dir", default="data/potsdam/train/images_1024")
-    parser.add_argument("--output-mask-dir", default="data/potsdam/train/masks_1024")
+    parser.add_argument("--output-img-dir",
+                        default="data/potsdam/train/images_1024")
+    parser.add_argument("--output-mask-dir",
+                        default="data/potsdam/train/masks_1024")
     parser.add_argument("--eroded", action='store_true')
     parser.add_argument("--gt", action='store_true')  # output RGB mask
-    parser.add_argument("--rgb-image", action='store_true')  # use Potsdam RGB format images
+    # use Potsdam RGB format images
+    parser.add_argument("--rgb-image", action='store_true')
     parser.add_argument("--mode", type=str, default='train')
     parser.add_argument("--val-scale", type=float, default=1.0)  # ignore
     parser.add_argument("--split-size", type=int, default=1024)
@@ -121,14 +124,17 @@ def image_augment(image, mask, patch_size, mode='train', val_scale=1.0):
         image_list_train = [image, image_h_vlip, image_v_vlip]
         mask_list_train = [mask, mask_h_vlip, mask_v_vlip]
         for i in range(len(image_list_train)):
-            image_tmp, mask_tmp = get_img_mask_padded(image_list_train[i], mask_list_train[i], patch_size, mode)
+            image_tmp, mask_tmp = get_img_mask_padded(
+                image_list_train[i], mask_list_train[i], patch_size, mode)
             mask_tmp = rgb_to_2D_label(mask_tmp.copy())
             image_list.append(image_tmp)
             mask_list.append(mask_tmp)
     else:
-        rescale = Resize(size=(int(image_width * val_scale), int(image_height * val_scale)))
+        rescale = Resize(size=(int(image_width * val_scale),
+                         int(image_height * val_scale)))
         image, mask = rescale(image.copy()), rescale(mask.copy())
-        image, mask = get_img_mask_padded(image.copy(), mask.copy(), patch_size, mode)
+        image, mask = get_img_mask_padded(
+            image.copy(), mask.copy(), patch_size, mode)
         mask = rgb_to_2D_label(mask.copy())
 
         image_list.append(image)
@@ -148,7 +154,8 @@ def car_aug(image, mask):
                                   albu.RandomCrop(width=image.shape[0], height=image.shape[1])])(image=image.copy(), mask=mask.copy())
     v_flip = albu.VerticalFlip(p=1.0)(image=image.copy(), mask=mask.copy())
     h_flip = albu.HorizontalFlip(p=1.0)(image=image.copy(), mask=mask.copy())
-    rotate_90 = albu.RandomRotate90(p=1.0)(image=image.copy(), mask=mask.copy())
+    rotate_90 = albu.RandomRotate90(p=1.0)(
+        image=image.copy(), mask=mask.copy())
     image_resize_crop_1, mask_resize_crop_1 = resize_crop_1['image'], resize_crop_1['mask']
     image_resize_crop_2, mask_resize_crop_2 = resize_crop_2['image'], resize_crop_2['mask']
     image_resize_crop_3, mask_resize_crop_3 = resize_crop_3['image'], resize_crop_3['mask']
@@ -184,7 +191,8 @@ def patch_format(inp):
     mask = Image.open(mask_path).convert('RGB')
     if gt:
         mask_ = car_color_replace(mask.copy())
-        out_origin_mask_path = os.path.join(masks_output_dir + '/origin/', "{}.tif".format(mask_filename))
+        out_origin_mask_path = os.path.join(
+            masks_output_dir + '/origin/', "{}.tif".format(mask_filename))
         cv2.imwrite(out_origin_mask_path, mask_)
     # print(mask)
     # print(img_path)
@@ -212,7 +220,8 @@ def patch_format(inp):
 
                     bins = np.array(range(num_classes + 1))
                     class_pixel_counts, _ = np.histogram(mask_tile, bins=bins)
-                    cf = class_pixel_counts / (mask_tile.shape[0] * mask_tile.shape[1])
+                    cf = class_pixel_counts / \
+                        (mask_tile.shape[0] * mask_tile.shape[1])
                     if cf[4] > 1.0 and mode == 'train':  # ignore car_aug, no improvement
                         car_imgs, car_masks = car_aug(img_tile, mask_tile)
                         for i in range(len(car_imgs)):
@@ -224,10 +233,12 @@ def patch_format(inp):
                                                          "{}_{}_{}_{}.png".format(mask_filename, m, k, i))
                             cv2.imwrite(out_mask_path, car_masks[i])
                     else:
-                        out_img_path = os.path.join(imgs_output_dir, "{}_{}_{}.tif".format(img_filename, m, k))
+                        out_img_path = os.path.join(
+                            imgs_output_dir, "{}_{}_{}.tif".format(img_filename, m, k))
                         cv2.imwrite(out_img_path, img_tile)
 
-                        out_mask_path = os.path.join(masks_output_dir, "{}_{}_{}.png".format(mask_filename, m, k))
+                        out_mask_path = os.path.join(
+                            masks_output_dir, "{}_{}_{}.png".format(mask_filename, m, k))
                         cv2.imwrite(out_mask_path, mask_tile)
 
                 k += 1
@@ -277,5 +288,3 @@ if __name__ == "__main__":
     t1 = time.time()
     split_time = t1 - t0
     print('images spliting spends: {} s'.format(split_time))
-
-

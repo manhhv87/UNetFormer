@@ -11,7 +11,8 @@ class Evaluator(object):
         tp = np.diag(self.confusion_matrix)
         fp = self.confusion_matrix.sum(axis=0) - np.diag(self.confusion_matrix)
         fn = self.confusion_matrix.sum(axis=1) - np.diag(self.confusion_matrix)
-        tn = np.diag(self.confusion_matrix).sum() - np.diag(self.confusion_matrix)
+        tn = np.diag(self.confusion_matrix).sum() - \
+            np.diag(self.confusion_matrix)
         return tp, fp, tn, fn
 
     def Precision(self):
@@ -32,7 +33,8 @@ class Evaluator(object):
         return F1
 
     def OA(self):
-        OA = np.diag(self.confusion_matrix).sum() / (self.confusion_matrix.sum() + self.eps)
+        OA = np.diag(self.confusion_matrix).sum() / \
+            (self.confusion_matrix.sum() + self.eps)
         return OA
 
     def Intersection_over_Union(self):
@@ -47,11 +49,13 @@ class Evaluator(object):
 
     def Pixel_Accuracy_Class(self):
         #         TP                                  TP+FP
-        Acc = np.diag(self.confusion_matrix) / (self.confusion_matrix.sum(axis=0) + self.eps)
+        Acc = np.diag(self.confusion_matrix) / \
+            (self.confusion_matrix.sum(axis=0) + self.eps)
         return Acc
 
     def Frequency_Weighted_Intersection_over_Union(self):
-        freq = np.sum(self.confusion_matrix, axis=1) / (np.sum(self.confusion_matrix) + self.eps)
+        freq = np.sum(self.confusion_matrix, axis=1) / \
+            (np.sum(self.confusion_matrix) + self.eps)
         iou = self.Intersection_over_Union()
         FWIoU = (freq[freq > 0] * iou[freq > 0]).sum()
         return FWIoU

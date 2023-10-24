@@ -30,8 +30,10 @@ def seed_everything(seed):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mask-dir", default="data/LoveDA/Train/Rural/masks_png")
-    parser.add_argument("--output-mask-dir", default="data/LoveDA/Train/Rural/masks_png_convert")
+    parser.add_argument(
+        "--mask-dir", default="data/LoveDA/Train/Rural/masks_png")
+    parser.add_argument("--output-mask-dir",
+                        default="data/LoveDA/Train/Rural/masks_png_convert")
     return parser.parse_args()
 
 
@@ -64,10 +66,12 @@ def patch_format(inp):
     label = convert_label(mask)
     rgb_label = label2rgb(label.copy())
     rgb_label = cv2.cvtColor(rgb_label, cv2.COLOR_RGB2BGR)
-    out_mask_path_rgb = os.path.join(masks_output_dir + '_rgb', "{}.png".format(mask_filename))
+    out_mask_path_rgb = os.path.join(
+        masks_output_dir + '_rgb', "{}.png".format(mask_filename))
     cv2.imwrite(out_mask_path_rgb, rgb_label)
 
-    out_mask_path = os.path.join(masks_output_dir, "{}.png".format(mask_filename))
+    out_mask_path = os.path.join(
+        masks_output_dir, "{}.png".format(mask_filename))
     cv2.imwrite(out_mask_path, label)
 
 
@@ -89,5 +93,3 @@ if __name__ == "__main__":
     t1 = time.time()
     split_time = t1 - t0
     print('images spliting spends: {} s'.format(split_time))
-
-

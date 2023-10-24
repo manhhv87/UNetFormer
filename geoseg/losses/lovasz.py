@@ -44,11 +44,13 @@ def _lovasz_hinge(logits, labels, per_image=True, ignore_index=None):
     """
     if per_image:
         loss = mean(
-            _lovasz_hinge_flat(*_flatten_binary_scores(log.unsqueeze(0), lab.unsqueeze(0), ignore_index))
+            _lovasz_hinge_flat(
+                *_flatten_binary_scores(log.unsqueeze(0), lab.unsqueeze(0), ignore_index))
             for log, lab in zip(logits, labels)
         )
     else:
-        loss = _lovasz_hinge_flat(*_flatten_binary_scores(logits, labels, ignore_index))
+        loss = _lovasz_hinge_flat(
+            *_flatten_binary_scores(logits, labels, ignore_index))
     return loss
 
 
@@ -101,11 +103,13 @@ def _lovasz_softmax(probas, labels, classes="present", per_image=False, ignore_i
     """
     if per_image:
         loss = mean(
-            _lovasz_softmax_flat(*_flatten_probas(prob.unsqueeze(0), lab.unsqueeze(0), ignore_index), classes=classes)
+            _lovasz_softmax_flat(
+                *_flatten_probas(prob.unsqueeze(0), lab.unsqueeze(0), ignore_index), classes=classes)
             for prob, lab in zip(probas, labels)
         )
     else:
-        loss = _lovasz_softmax_flat(*_flatten_probas(probas, labels, ignore_index), classes=classes)
+        loss = _lovasz_softmax_flat(
+            *_flatten_probas(probas, labels, ignore_index), classes=classes)
     return loss
 
 
@@ -148,7 +152,8 @@ def _flatten_probas(probas, labels, ignore=None):
         probas = probas.view(B, 1, H, W)
 
     C = probas.size(1)
-    probas = torch.movedim(probas, 1, -1)  # [B, C, Di, Dj, ...] -> [B, Di, Dj, ..., C]
+    # [B, C, Di, Dj, ...] -> [B, Di, Dj, ..., C]
+    probas = torch.movedim(probas, 1, -1)
     probas = probas.contiguous().view(-1, C)  # [P, C]
 
     labels = labels.view(-1)

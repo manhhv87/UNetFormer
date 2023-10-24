@@ -45,8 +45,10 @@ def get_args():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg("-c", "--config_path", type=Path, required=True, help="Path to  config")
-    arg("-o", "--output_path", type=Path, help="Path where to save resulting masks.", required=True)
-    arg("-t", "--tta", help="Test time augmentation.", default=None, choices=[None, "d4", "lr"]) ## lr is flip TTA, d4 is multi-scale TTA
+    arg("-o", "--output_path", type=Path,
+        help="Path where to save resulting masks.", required=True)
+    arg("-t", "--tta", help="Test time augmentation.", default=None,
+        choices=[None, "d4", "lr"])  # lr is flip TTA, d4 is multi-scale TTA
     arg("--rgb", help="whether output rgb masks", action='store_true')
     arg("--val", help="whether eval validation set", action='store_true')
     return parser.parse_args()
@@ -57,7 +59,8 @@ def main():
     config = py2cfg(args.config_path)
     args.output_path.mkdir(exist_ok=True, parents=True)
 
-    model = Supervision_Train.load_from_checkpoint(os.path.join(config.weights_path, config.test_weights_name+'.ckpt'), config=config)
+    model = Supervision_Train.load_from_checkpoint(os.path.join(
+        config.weights_path, config.test_weights_name+'.ckpt'), config=config)
     model.cuda()
     model.eval()
     if args.tta == "lr":
@@ -74,7 +77,8 @@ def main():
                 tta.HorizontalFlip(),
                 # tta.VerticalFlip(),
                 # tta.Rotate90(angles=[0, 90, 180, 270]),
-                tta.Scale(scales=[0.75, 1.0, 1.25, 1.5], interpolation='bicubic', align_corners=False),
+                tta.Scale(scales=[0.75, 1.0, 1.25, 1.5],
+                          interpolation='bicubic', align_corners=False),
                 # tta.Multiply(factors=[0.8, 1, 1.2])
             ]
         )
@@ -115,17 +119,22 @@ def main():
                 if args.val:
                     if not os.path.exists(os.path.join(args.output_path, mask_type)):
                         os.mkdir(os.path.join(args.output_path, mask_type))
-                    evaluator.add_batch(pre_image=mask, gt_image=masks_true[i].cpu().numpy())
-                    results.append((mask, str(args.output_path / mask_type / mask_name), args.rgb))
+                    evaluator.add_batch(
+                        pre_image=mask, gt_image=masks_true[i].cpu().numpy())
+                    results.append(
+                        (mask, str(args.output_path / mask_type / mask_name), args.rgb))
                 else:
-                    results.append((mask, str(args.output_path / mask_name), args.rgb))
+                    results.append(
+                        (mask, str(args.output_path / mask_name), args.rgb))
     if args.val:
         iou_per_class = evaluator.Intersection_over_Union()
         f1_per_class = evaluator.F1()
         OA = evaluator.OA()
         for class_name, class_iou, class_f1 in zip(config.classes, iou_per_class, f1_per_class):
-            print('F1_{}:{}, IOU_{}:{}'.format(class_name, class_f1, class_name, class_iou))
-        print('F1:{}, mIOU:{}, OA:{}'.format(np.nanmean(f1_per_class), np.nanmean(iou_per_class), OA))
+            print('F1_{}:{}, IOU_{}:{}'.format(
+                class_name, class_f1, class_name, class_iou))
+        print('F1:{}, mIOU:{}, OA:{}'.format(np.nanmean(
+            f1_per_class), np.nanmean(iou_per_class), OA))
 
     t0 = time.time()
     mpp.Pool(processes=mp.cpu_count()).map(img_writer, results)
