@@ -91,17 +91,17 @@ class Mlp(nn.Module):
 # Global-local Transformer Block (GLTB)
 class GlobalLocalAttention(nn.Module):
     def __init__(self,
-                 dim=256,                       # kernel features 
-                 num_heads=16,                  # number of heads h                 
-                 qkv_bias=False,                # query (Q), key (K) and value (V)
-                 window_size=8,                 # window size w
+                 dim=256,                       # Number of input channels
+                 num_heads=16,                  # Number of attention heads h                 
+                 qkv_bias=False,                # If True, add a learnable bias to query, key, value. Default: False
+                 window_size=8,                 # The height and width of the window w
                  relative_pos_embedding=True
                  ):
         super().__init__()
         self.num_heads = num_heads
-        head_dim = dim // self.num_heads
+        head_dim = dim // self.num_heads    # Number of input channels of each attention heads
         self.scale = head_dim ** -0.5
-        self.ws = window_size
+        self.ws = window_size   # wh, ww
 
         # local branch employs two parallel convolutional layers with 
         # kernel sizes of 3 × 3 and 1 × 1 to extract the local context
@@ -126,22 +126,20 @@ class GlobalLocalAttention(nn.Module):
         if self.relative_pos_embedding:
             # define a parameter table of relative position bias
             self.relative_position_bias_table = nn.Parameter(
-                torch.zeros((2 * window_size - 1) * (2 * window_size - 1), num_heads))  # 2*Wh-1 * 2*Ww-1, nH
+                torch.zeros((2 * window_size - 1) * (2 * window_size - 1), num_heads))  # 2*wh-1 * 2*ww-1, number of head
 
             # get pair-wise relative position index for each token inside the window
             coords_h = torch.arange(self.ws)
             coords_w = torch.arange(self.ws)
-            coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
-            coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
-            
-            # 2, Wh*Ww, Wh*Ww
-            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
-            relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
+            coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, wh, ww
+            coords_flatten = torch.flatten(coords, 1)  # 2, wh*ww
+                        
+            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]   # 2, wh*Ww, wh*Ww
+            relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # wh*Ww, wh*ww, 2
             relative_coords[:, :, 0] += self.ws - 1  # shift to start from 0
             relative_coords[:, :, 1] += self.ws - 1
             relative_coords[:, :, 0] *= 2 * self.ws - 1
-            relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww
-            
+            relative_position_index = relative_coords.sum(-1)  # wh*Ww, wh*ww            
             self.register_buffer("relative_position_index", relative_position_index)
 
             trunc_normal_(self.relative_position_bias_table, std=.02)
@@ -164,7 +162,10 @@ class GlobalLocalAttention(nn.Module):
         return x
 
     def forward(self, x):
-        # Input (B x C x H x W)
+        """
+        Args:
+             x: input features with shape of (B, H, W, C)
+        """
         B, C, H, W = x.shape
 
         # local context
@@ -173,18 +174,28 @@ class GlobalLocalAttention(nn.Module):
         x = self.pad(x, self.ws)
         B, C, Hp, Wp = x.shape      # Hp, Wp = High/Width after padding
         qkv = self.qkv(x)           # con 1x1 -> (B x 3C x H x W)
-
-        # https://einops.rocks/api/rearrange/
-        # (b, c, h, w) = [10, 32, 100, 200]
-        # rearrange(x, 'b (h1 w1 c) h w -> b c (h h1) (w w1)', h1=2, w1=2).shape
-        # --> (b, c, h, w) = (10, 8, 200, 400)
-        # b = b = 10
-        # c = 8 = 32/h1/w1
-        # h = 100 =  100 * h1
-        # w = 200 = 200 * w1 
+        
+        # depth-to-space: reshape -> transpose -> reshape            
         # 
-        # depth-to-space 
-        # window partition --> (3 x B x H/w x W/w x h) x (w x w) x C/h        
+        # q, k, v = rearrange(qkv, 'b (qkv h d) (ws1 hh) (ws2 ww) -> qkv (b hh ww) h (ws1 ws2) d', 
+        #                     h=self.num_heads, qkv=3, ws1=self.ws, ws2=self.ws)
+        # 
+        #                                    0  1  2  3   4   5    6   7
+        #   reshape:       qkv = qkv.reshape(b, 3, h, d, ws1, hh, ws2, ww)
+        #   transpose：    qkv = qkv.transpose(1, 0, 5, 7, 2, 4, 6, 3) = (3, b, hh, ww, h, ws1, ws2, d)
+        #   reshape:   q, k, v = qkv.reshape(3, b*hh*ww, h, ws1*ws2, d)
+        # 
+        # q, k, v = rearrange(qkv, 'b (qkv h d) (hh ws1) (ww ws2) -> qkv (b hh ww) h (ws1 ws2) d', 
+        #                     h=self.num_heads, qkv=3, ws1=self.ws, ws2=self.ws)
+        # 
+        #                                    0  1  2  3   4   5   6    7
+        #   reshape:       qkv = qkv.reshape(b, 3, h, d, hh, ws1, ww, ws2) 
+        #                        --> window partition --> (B x H/w x W/w) x 3C x w x w
+        #   transpose：    qkv = qkv.transpose(1, 0, 4, 6, 2, 5, 7, 3) = (3, b, hh, ww, h, ws1, ws2, d) 
+        #                        --> reshape each head --> 1D sequence --> (3 x B x H/w x W/w x h) x (w x w) x C/h
+        #   reshape:   q, k, v = qkv.reshape(3, b*hh*ww, h, ws1*ws2, d)
+        #                        --> assign to each head --> (B x H/w x W/w) x (w x w) x C/h 
+        # 
         q, k, v = rearrange(qkv, 'b (qkv h d) (hh ws1) (ww ws2) -> qkv (b hh ww) h (ws1 ws2) d', 
                             h=self.num_heads, d=C//self.num_heads, hh=Hp//self.ws, ww=Wp//self.ws, 
                             qkv=3, ws1=self.ws, ws2=self.ws)
@@ -193,19 +204,32 @@ class GlobalLocalAttention(nn.Module):
 
         if self.relative_pos_embedding:
             relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(
-                self.ws * self.ws, self.ws * self.ws, -1)  # Wh*Ww,Wh*Ww,nH
-            relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+                self.ws * self.ws, self.ws * self.ws, -1)  # wh*ww, wh*ww, number of heads
+            relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # number of heads, wh*ww, wh*ww
+
+            # Calculate the position code and add it together with the attention
             dots += relative_position_bias.unsqueeze(0)
 
-        attn = dots.softmax(dim=-1)
+        attn = dots.softmax(dim=-1)     # Do softmax on the score of the attention mechanism
         attn = attn @ v
 
-        attn = rearrange(attn, '(b hh ww) h (ws1 ws2) d -> b (h d) (hh ws1) (ww ws2)', h=self.num_heads,
-                         d=C//self.num_heads, hh=Hp//self.ws, ww=Wp//self.ws, ws1=self.ws, ws2=self.ws)
+        # attn = rearrange(attn, '(b hh ww) h (ws1 ws2) d -> b (h d) (hh ws1) (ww ws2)', 
+        #                  h=self.num_heads, d=C//self.num_heads, hh=Hp//self.ws, ww=Wp//self.ws, 
+        #                  ws1=self.ws, ws2=self.ws)
+        # 
+        #                                  0  1   2   3   4    5   6
+        #   reshape:   attn = attn.reshape(b, hh, ww, h, ws1, ws2, d) 
+        #   transpose：attn = attn.transpose(0, 3, 6, 1, 4, 2, 5) = (b, h, d, hh, ws1, ww, ws2)
+        #   reshape:   attn = qkv.reshape(b, (h*d), (hh*ws1), (ws*ws2))
+        # 
+        attn = rearrange(attn, '(b hh ww) h (ws1 ws2) d -> b (h d) (hh ws1) (ww ws2)', 
+                         h=self.num_heads, d=C//self.num_heads, hh=Hp//self.ws, ww=Wp//self.ws, 
+                         ws1=self.ws, ws2=self.ws)
 
         attn = attn[:, :, :H, :W]
 
-        out = self.attn_x(F.pad(attn, pad=(0, 0, 0, 1), mode='reflect')) + self.attn_y(F.pad(attn, pad=(0, 1, 0, 0), mode='reflect'))   # global context
+        out = self.attn_x(F.pad(attn, pad=(0, 0, 0, 1), mode='reflect')) + self.attn_y(
+                          F.pad(attn, pad=(0, 1, 0, 0), mode='reflect'))   # global context
 
         out = out + local
         out = self.pad_out(out)
