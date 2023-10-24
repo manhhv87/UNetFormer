@@ -7,25 +7,6 @@ from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 import timm
 
 
-class ConvBNReLU(nn.Sequential):
-    def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1, stride=1, norm_layer=nn.BatchNorm2d, bias=False):
-        super(ConvBNReLU, self).__init__(
-            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, bias=bias,
-                      dilation=dilation, stride=stride, padding=((stride - 1) + dilation * (kernel_size - 1)) // 2),
-            norm_layer(out_channels),
-            nn.ReLU6()
-        )
-
-
-class ConvBN(nn.Sequential):
-    def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1, stride=1, norm_layer=nn.BatchNorm2d, bias=False):
-        super(ConvBN, self).__init__(
-            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, bias=bias,
-                      dilation=dilation, stride=stride, padding=((stride - 1) + dilation * (kernel_size - 1)) // 2),
-            norm_layer(out_channels)
-        )
-
-
 class Conv(nn.Sequential):
     def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1, stride=1, bias=False):
         super(Conv, self).__init__(
@@ -34,13 +15,52 @@ class Conv(nn.Sequential):
         )
 
 
+class ConvBN(nn.Sequential):
+    def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1, stride=1, bias=False, norm_layer=nn.BatchNorm2d):
+        super(ConvBN, self).__init__(
+            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, bias=bias,
+                      dilation=dilation, stride=stride, padding=((stride - 1) + dilation * (kernel_size - 1)) // 2),
+            norm_layer(out_channels)
+        )
+
+
+class ConvBNReLU(nn.Sequential):
+    def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1, stride=1, bias=False, norm_layer=nn.BatchNorm2d):
+        super(ConvBNReLU, self).__init__(
+            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, bias=bias,
+                      dilation=dilation, stride=stride, padding=((stride - 1) + dilation * (kernel_size - 1)) // 2),
+            norm_layer(out_channels),
+            nn.ReLU6()
+        )
+
+
+# https://www.paepper.com/blog/posts/depthwise-separable-convolutions-in-pytorch/
+class SeparableConv(nn.Sequential):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1):
+        super(SeparableConv, self).__init__(
+            nn.Conv2d(in_channels, in_channels, kernel_size, stride=stride, dilation=dilation,
+                      padding=((stride - 1) + dilation *  (kernel_size - 1)) // 2,
+                      groups=in_channels, bias=False),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        )
+
+
+class SeparableConvBN(nn.Sequential):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1, norm_layer=nn.BatchNorm2d):
+        super(SeparableConvBN, self).__init__(
+            nn.Conv2d(in_channels, in_channels, kernel_size, stride=stride, dilation=dilation,
+                      padding=((stride - 1) + dilation * (kernel_size - 1)) // 2,
+                      groups=in_channels, bias=False),
+            norm_layer(out_channels),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        )
+
+
 class SeparableConvBNReLU(nn.Sequential):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1,
-                 norm_layer=nn.BatchNorm2d):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1, norm_layer=nn.BatchNorm2d):
         super(SeparableConvBNReLU, self).__init__(
             nn.Conv2d(in_channels, in_channels, kernel_size, stride=stride, dilation=dilation,
-                      padding=((stride - 1) + dilation *
-                               (kernel_size - 1)) // 2,
+                      padding=((stride - 1) + dilation * (kernel_size - 1)) // 2,
                       groups=in_channels, bias=False),
             norm_layer(out_channels),
             nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
@@ -48,38 +68,15 @@ class SeparableConvBNReLU(nn.Sequential):
         )
 
 
-class SeparableConvBN(nn.Sequential):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1,
-                 norm_layer=nn.BatchNorm2d):
-        super(SeparableConvBN, self).__init__(
-            nn.Conv2d(in_channels, in_channels, kernel_size, stride=stride, dilation=dilation,
-                      padding=((stride - 1) + dilation *
-                               (kernel_size - 1)) // 2,
-                      groups=in_channels, bias=False),
-            norm_layer(out_channels),
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        )
-
-
-class SeparableConv(nn.Sequential):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1):
-        super(SeparableConv, self).__init__(
-            nn.Conv2d(in_channels, in_channels, kernel_size, stride=stride, dilation=dilation,
-                      padding=((stride - 1) + dilation *
-                               (kernel_size - 1)) // 2,
-                      groups=in_channels, bias=False),
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        )
-
-
+# https://towardsdatascience.com/multilayer-perceptron-explained-with-a-real-life-example-and-python-code-sentiment-analysis-cb408ee93141
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.ReLU6, drop=0.):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
-        self.fc1 = nn.Conv2d(in_features, hidden_features, 1, 1, 0, bias=True)
+        self.fc1 = nn.Conv2d(in_features, hidden_features, kernel_size=1, stride=1, padding=0, bias=True)
         self.act = act_layer()
-        self.fc2 = nn.Conv2d(hidden_features, out_features, 1, 1, 0, bias=True)
+        self.fc2 = nn.Conv2d(hidden_features, out_features, kernel_size=1, stride=1, padding=0, bias=True)
         self.drop = nn.Dropout(drop, inplace=True)
 
     def forward(self, x):
@@ -91,12 +88,13 @@ class Mlp(nn.Module):
         return x
 
 
+# Global-local Transformer Block (GLTB)
 class GlobalLocalAttention(nn.Module):
     def __init__(self,
-                 dim=256,
-                 num_heads=16,
-                 qkv_bias=False,
-                 window_size=8,
+                 dim=256,                       # kernel features 
+                 num_heads=16,                  # number of heads h                 
+                 qkv_bias=False,                # query (Q), key (K) and value (V)
+                 window_size=8,                 # window size w
                  relative_pos_embedding=True
                  ):
         super().__init__()
@@ -105,15 +103,23 @@ class GlobalLocalAttention(nn.Module):
         self.scale = head_dim ** -0.5
         self.ws = window_size
 
-        self.qkv = Conv(dim, 3*dim, kernel_size=1, bias=qkv_bias)
+        # local branch employs two parallel convolutional layers with 
+        # kernel sizes of 3 × 3 and 1 × 1 to extract the local context
         self.local1 = ConvBN(dim, dim, kernel_size=3)
         self.local2 = ConvBN(dim, dim, kernel_size=1)
+
+        # global branch deploys the window-based multi-head selfattention to capture global context.
+        # we first use a standard 1 × 1 convolution to expand the channel dimension 
+        # of the input 2D feature map ∈ R (B×C×H×W) to 3 times.
+        self.qkv = Conv(dim, 3*dim, kernel_size=1, bias=qkv_bias)
+
         self.proj = SeparableConvBN(dim, dim, kernel_size=window_size)
 
-        self.attn_x = nn.AvgPool2d(kernel_size=(
-            window_size, 1), stride=1,  padding=(window_size//2 - 1, 0))
-        self.attn_y = nn.AvgPool2d(kernel_size=(
-            1, window_size), stride=1, padding=(0, window_size//2 - 1))
+        self.attn_x = nn.AvgPool2d(kernel_size=(window_size, 1), stride=1,  
+                                   padding=(window_size//2 - 1, 0))
+        
+        self.attn_y = nn.AvgPool2d(kernel_size=(1, window_size), 
+                                   stride=1, padding=(0, window_size//2 - 1))
 
         self.relative_pos_embedding = relative_pos_embedding
 
@@ -125,54 +131,70 @@ class GlobalLocalAttention(nn.Module):
             # get pair-wise relative position index for each token inside the window
             coords_h = torch.arange(self.ws)
             coords_w = torch.arange(self.ws)
-            coords = torch.stack(torch.meshgrid(
-                [coords_h, coords_w]))  # 2, Wh, Ww
+            coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
             coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
+            
             # 2, Wh*Ww, Wh*Ww
-            relative_coords = coords_flatten[:, :,
-                                             None] - coords_flatten[:, None, :]
-            relative_coords = relative_coords.permute(
-                1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
+            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
+            relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
             relative_coords[:, :, 0] += self.ws - 1  # shift to start from 0
             relative_coords[:, :, 1] += self.ws - 1
             relative_coords[:, :, 0] *= 2 * self.ws - 1
             relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww
-            self.register_buffer("relative_position_index",
-                                 relative_position_index)
+            
+            self.register_buffer("relative_position_index", relative_position_index)
 
             trunc_normal_(self.relative_position_bias_table, std=.02)
 
+    # ps - padding size
     def pad(self, x, ps):
-        _, _, H, W = x.size()
+        _, _, H, W = x.size()   # B, C, H, W
+
         if W % ps != 0:
-            x = F.pad(x, (0, ps - W % ps), mode='reflect')
+            # pad only the last dimension (W) of the input tensor by (0, ps - W % ps)
+            x = F.pad(input=x, pad=(0, ps - W % ps), mode='reflect')    
         if H % ps != 0:
-            x = F.pad(x, (0, 0, 0, ps - H % ps), mode='reflect')
+            # pad last dim by (0, 0) and 2nd to last by (0, ps - H % ps)
+            x = F.pad(input=x, pad=(0, 0, 0, ps - H % ps), mode='reflect')
         return x
 
     def pad_out(self, x):
+        # pad last dim by (0, 1) and 2nd to last by (0, 1)
         x = F.pad(x, pad=(0, 1, 0, 1), mode='reflect')
         return x
 
     def forward(self, x):
+        # Input (B x C x H x W)
         B, C, H, W = x.shape
 
-        local = self.local2(x) + self.local1(x)
+        # local context
+        local = self.local2(x) + self.local1(x)     
 
         x = self.pad(x, self.ws)
-        B, C, Hp, Wp = x.shape
-        qkv = self.qkv(x)
+        B, C, Hp, Wp = x.shape      # Hp, Wp = High/Width after padding
+        qkv = self.qkv(x)           # con 1x1 -> (B x 3C x H x W)
 
-        q, k, v = rearrange(qkv, 'b (qkv h d) (hh ws1) (ww ws2) -> qkv (b hh ww) h (ws1 ws2) d', h=self.num_heads,
-                            d=C//self.num_heads, hh=Hp//self.ws, ww=Wp//self.ws, qkv=3, ws1=self.ws, ws2=self.ws)
+        # https://einops.rocks/api/rearrange/
+        # (b, c, h, w) = [10, 32, 100, 200]
+        # rearrange(x, 'b (h1 w1 c) h w -> b c (h h1) (w w1)', h1=2, w1=2).shape
+        # --> (b, c, h, w) = (10, 8, 200, 400)
+        # b = b = 10
+        # c = 8 = 32/h1/w1
+        # h = 100 =  100 * h1
+        # w = 200 = 200 * w1 
+        # 
+        # depth-to-space 
+        # window partition --> (3 x B x H/w x W/w x h) x (w x w) x C/h        
+        q, k, v = rearrange(qkv, 'b (qkv h d) (hh ws1) (ww ws2) -> qkv (b hh ww) h (ws1 ws2) d', 
+                            h=self.num_heads, d=C//self.num_heads, hh=Hp//self.ws, ww=Wp//self.ws, 
+                            qkv=3, ws1=self.ws, ws2=self.ws)
 
         dots = (q @ k.transpose(-2, -1)) * self.scale
 
         if self.relative_pos_embedding:
             relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(
                 self.ws * self.ws, self.ws * self.ws, -1)  # Wh*Ww,Wh*Ww,nH
-            relative_position_bias = relative_position_bias.permute(
-                2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+            relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
             dots += relative_position_bias.unsqueeze(0)
 
         attn = dots.softmax(dim=-1)
@@ -183,8 +205,7 @@ class GlobalLocalAttention(nn.Module):
 
         attn = attn[:, :, :H, :W]
 
-        out = self.attn_x(F.pad(attn, pad=(0, 0, 0, 1), mode='reflect')) + \
-            self.attn_y(F.pad(attn, pad=(0, 1, 0, 0), mode='reflect'))
+        out = self.attn_x(F.pad(attn, pad=(0, 0, 0, 1), mode='reflect')) + self.attn_y(F.pad(attn, pad=(0, 1, 0, 0), mode='reflect'))   # global context
 
         out = out + local
         out = self.pad_out(out)
@@ -200,18 +221,15 @@ class Block(nn.Module):
                  drop_path=0., act_layer=nn.ReLU6, norm_layer=nn.BatchNorm2d, window_size=8):
         super().__init__()
         self.norm1 = norm_layer(dim)
-        self.attn = GlobalLocalAttention(
-            dim, num_heads=num_heads, qkv_bias=qkv_bias, window_size=window_size)
+        self.attn = GlobalLocalAttention(dim, num_heads=num_heads, qkv_bias=qkv_bias, window_size=window_size)
 
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0. else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim,
                        out_features=dim, act_layer=act_layer, drop=drop)
         self.norm2 = norm_layer(dim)
 
     def forward(self, x):
-
         x = x + self.drop_path(self.attn(self.norm1(x)))
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
@@ -223,19 +241,17 @@ class WF(nn.Module):
         super(WF, self).__init__()
         self.pre_conv = Conv(in_channels, decode_channels, kernel_size=1)
 
-        self.weights = nn.Parameter(torch.ones(
-            2, dtype=torch.float32), requires_grad=True)
+        self.weights = nn.Parameter(torch.ones(2, dtype=torch.float32), requires_grad=True)
         self.eps = eps
-        self.post_conv = ConvBNReLU(
-            decode_channels, decode_channels, kernel_size=3)
+        self.post_conv = ConvBNReLU(decode_channels, decode_channels, kernel_size=3)
 
     def forward(self, x, res):
-        x = F.interpolate(x, scale_factor=2, mode='bilinear',
-                          align_corners=False)
+        x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=False)
         weights = nn.ReLU()(self.weights)
         fuse_weights = weights / (torch.sum(weights, dim=0) + self.eps)
         x = fuse_weights[0] * self.pre_conv(res) + fuse_weights[1] * x
         x = self.post_conv(x)
+
         return x
 
 
@@ -244,37 +260,34 @@ class FeatureRefinementHead(nn.Module):
         super().__init__()
         self.pre_conv = Conv(in_channels, decode_channels, kernel_size=1)
 
-        self.weights = nn.Parameter(torch.ones(
-            2, dtype=torch.float32), requires_grad=True)
+        self.weights = nn.Parameter(torch.ones(2, dtype=torch.float32), requires_grad=True)
         self.eps = 1e-8
-        self.post_conv = ConvBNReLU(
-            decode_channels, decode_channels, kernel_size=3)
+        self.post_conv = ConvBNReLU(decode_channels, decode_channels, kernel_size=3)
 
+        # spatial path
         self.pa = nn.Sequential(nn.Conv2d(decode_channels, decode_channels, kernel_size=3, padding=1, groups=decode_channels),
                                 nn.Sigmoid())
+        
+        # channel path
         self.ca = nn.Sequential(nn.AdaptiveAvgPool2d(1),
-                                Conv(decode_channels, decode_channels //
-                                     16, kernel_size=1),
+                                Conv(decode_channels, decode_channels // 16, kernel_size=1),
                                 nn.ReLU6(),
-                                Conv(decode_channels//16,
-                                     decode_channels, kernel_size=1),
+                                Conv(decode_channels // 16, decode_channels, kernel_size=1),
                                 nn.Sigmoid())
 
         self.shortcut = ConvBN(decode_channels, decode_channels, kernel_size=1)
-        self.proj = SeparableConvBN(
-            decode_channels, decode_channels, kernel_size=3)
+        self.proj = SeparableConvBN(decode_channels, decode_channels, kernel_size=3)
         self.act = nn.ReLU6()
 
     def forward(self, x, res):
-        x = F.interpolate(x, scale_factor=2, mode='bilinear',
-                          align_corners=False)
+        x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=False)
         weights = nn.ReLU()(self.weights)
         fuse_weights = weights / (torch.sum(weights, dim=0) + self.eps)
         x = fuse_weights[0] * self.pre_conv(res) + fuse_weights[1] * x
         x = self.post_conv(x)
         shortcut = self.shortcut(x)
         pa = self.pa(x) * x
-        ca = self.ca(x) * x
+        ca = self.ca(x) * x     
         x = pa + ca
         x = self.proj(x) + shortcut
         x = self.act(x)
@@ -282,20 +295,24 @@ class FeatureRefinementHead(nn.Module):
         return x
 
 
+# Extra auxiliary head (AH block)
+# The auxiliary head takes the fused feature of the three global–local Transformer blocks 
+# as the input and constructs a 3 × 3 convolution layer with batch normalization and ReLU,
+# a 1 × 1 convolution layer and an upsampling operation to generate the output. 
 class AuxHead(nn.Module):
 
     def __init__(self, in_channels=64, num_classes=8):
         super().__init__()
-        self.conv = ConvBNReLU(in_channels, in_channels)
+        self.conv = ConvBNReLU(in_channels, in_channels)    # 3×3 convolution layer with batch normalization and ReLU
         self.drop = nn.Dropout(0.1)
-        self.conv_out = Conv(in_channels, num_classes, kernel_size=1)
+        self.conv_out = Conv(in_channels, num_classes, kernel_size=1)   # 1×1 convolution layer
 
     def forward(self, x, h, w):
         feat = self.conv(x)
         feat = self.drop(feat)
         feat = self.conv_out(feat)
-        feat = F.interpolate(feat, size=(
-            h, w), mode='bilinear', align_corners=False)
+        feat = F.interpolate(feat, size=(h, w), mode='bilinear', align_corners=False)   # upsampling operation
+
         return feat
 
 
@@ -310,15 +327,18 @@ class Decoder(nn.Module):
 
         self.pre_conv = ConvBN(
             encoder_channels[-1], decode_channels, kernel_size=1)
+
         self.b4 = Block(dim=decode_channels, num_heads=8,
                         window_size=window_size)
 
         self.b3 = Block(dim=decode_channels, num_heads=8,
                         window_size=window_size)
+
         self.p3 = WF(encoder_channels[-2], decode_channels)
 
         self.b2 = Block(dim=decode_channels, num_heads=8,
                         window_size=window_size)
+
         self.p2 = WF(encoder_channels[-3], decode_channels)
 
         if self.training:
@@ -400,6 +420,7 @@ class UNetFormer(nn.Module):
     def forward(self, x):
         h, w = x.size()[-2:]
         res1, res2, res3, res4 = self.backbone(x)
+
         if self.training:
             x, ah = self.decoder(res1, res2, res3, res4, h, w)
             return x, ah
