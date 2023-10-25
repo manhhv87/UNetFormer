@@ -38,19 +38,19 @@ num_classes = 6
 
 # split huge RS image to small patches
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Split huge RS image to small patches')
     parser.add_argument("--img-dir", default="data/vaihingen/train_images")
     parser.add_argument("--mask-dir", default="data/vaihingen/train_masks")
-    parser.add_argument("--output-img-dir",
-                        default="data/vaihingen/train/images_1024")
-    parser.add_argument("--output-mask-dir",
-                        default="data/vaihingen/train/masks_1024")
+    parser.add_argument("--output-img-dir", default="data/vaihingen/train/images_1024")
+    parser.add_argument("--output-mask-dir", default="data/vaihingen/train/masks_1024")
     parser.add_argument("--eroded", action='store_true')
     parser.add_argument("--gt", action='store_true')
     parser.add_argument("--mode", type=str, default='train')
     parser.add_argument("--val-scale", type=float, default=1.0)
-    parser.add_argument("--split-size", type=int, default=1024)
-    parser.add_argument("--stride", type=int, default=512)
+    parser.add_argument("--split-size", type=int, default=1024,
+                        help='clipped size of image after preparation')
+    parser.add_argument("--stride", type=int, default=512,
+                        help='stride of clipping original images')
     return parser.parse_args()
 
 
