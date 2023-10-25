@@ -38,7 +38,9 @@ def py2dict(file_path: Union[str, Path]) -> dict:
     }
     Args:
         file_path: path to the original python file.
-    Returns: {key: value}, where key - all variables defined in the file and value is their value.
+    
+    Returns: 
+        {key: value}, where key - all variables defined in the file and value is their value.
     """
     file_path = Path(file_path).absolute()
 

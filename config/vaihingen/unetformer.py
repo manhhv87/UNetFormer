@@ -5,7 +5,7 @@ from geoseg.models.UNetFormer import UNetFormer
 from catalyst.contrib.nn import Lookahead
 from catalyst import utils
 
-# training hparam
+# training hyper-parameter
 max_epoch = 105
 ignore_index = len(CLASSES)
 train_batch_size = 16
@@ -38,7 +38,6 @@ loss = UnetFormerLoss(ignore_index=ignore_index)
 use_aux_loss = True
 
 # define the dataloader
-
 train_dataset = VaihingenDataset(data_root='data/vaihingen/train', mode='train',
                                  mosaic_ratio=0.25, transform=train_aug)
 
