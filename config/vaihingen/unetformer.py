@@ -8,8 +8,8 @@ from catalyst import utils
 # training hparam
 max_epoch = 105
 ignore_index = len(CLASSES)
-train_batch_size = 8
-val_batch_size = 8
+train_batch_size = 16
+val_batch_size = 1
 lr = 6e-4
 weight_decay = 0.01
 backbone_lr = 6e-5
@@ -48,14 +48,14 @@ test_dataset = VaihingenDataset(data_root='data/vaihingen/test',
 
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=train_batch_size,
-                          num_workers=4,
+                          num_workers=2,
                           pin_memory=True,
                           shuffle=True,
                           drop_last=True)
 
 val_loader = DataLoader(dataset=val_dataset,
                         batch_size=val_batch_size,
-                        num_workers=4,
+                        num_workers=2,
                         shuffle=False,
                         pin_memory=True,
                         drop_last=False)
