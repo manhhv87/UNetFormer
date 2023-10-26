@@ -37,7 +37,7 @@ Pool = np.array([190, 153, 153])            # label 7
 Grass = np.array([180, 165, 180])           # label 8
 Background = np.array([0, 0, 0])            # label 9
 
-num_classes = 10
+num_classes = 9
 
 
 # split huge RS image to small patches
@@ -83,7 +83,14 @@ def get_img_mask_padded(image, mask, patch_size):
     return img_pad, mask_pad
 
 
+# Now replace RGB to integer values to be used as labels.
+# Find pixels with combination of RGB for the above defined arrays...
+# If matches then replace all values in that pixel with a specific integer
 def rgb_to_2D_label(_label):
+    """
+    Supply our lable masks as input in RGB format.
+    Replace pixels with specific RGB values ...
+    """
     _label = _label.transpose(2, 0, 1)
     label_seg = np.zeros(_label.shape[1:], dtype=np.uint8)
 
@@ -170,8 +177,17 @@ def car_aug(image, mask):
 
 
 def floodnet_format(inp):
+    """
+    Original image of FloodNet dataset is very large, thus pre-processing
+    of them is adopted. Given fixed clip size and stride size to generate
+    clipped image, the intersection of width and height is determined.
+    For example, given one 6800 x 7200 original image, the clip size is
+    256 and stride size is 256, thus it would generate 29 x 27 = 783 images
+    whose size are all 256 x 256.
+    """
+
     (img_path, mask_path, imgs_output_dir, masks_output_dir,
-     eroded, gt, mode, val_scale, split_size, stride) = inp
+     mode, val_scale, split_size, stride) = inp
     img_filename = os.path.splitext(os.path.basename(img_path))[0]
     mask_filename = os.path.splitext(os.path.basename(mask_path))[0]
 
@@ -235,8 +251,6 @@ if __name__ == "__main__":
     masks_dir = args.mask_dir
     imgs_output_dir = args.output_img_dir
     masks_output_dir = args.output_mask_dir
-    gt = args.gt
-    eroded = args.eroded
     mode = args.mode
     val_scale = args.val_scale
     split_size = args.split_size
@@ -254,8 +268,8 @@ if __name__ == "__main__":
     if not os.path.exists(masks_output_dir):
         os.makedirs(masks_output_dir)
 
-    inp = [(img_path, mask_path, imgs_output_dir, masks_output_dir, eroded, gt, mode,
-            val_scale, split_size, stride) for img_path, mask_path in zip(img_paths, mask_paths)]
+    inp = [(img_path, mask_path, imgs_output_dir, masks_output_dir, mode, val_scale,
+            split_size, stride) for img_path, mask_path in zip(img_paths, mask_paths)]
 
     t0 = time.time()
     mpp.Pool(processes=mp.cpu_count()).map(floodnet_format, inp)
