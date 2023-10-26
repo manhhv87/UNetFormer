@@ -169,7 +169,7 @@ def car_aug(image, mask):
     return image_list, mask_list
 
 
-def vaihingen_format(inp):
+def floodnet_format(inp):
     (img_path, mask_path, imgs_output_dir, masks_output_dir,
      eroded, gt, mode, val_scale, split_size, stride) = inp
     img_filename = os.path.splitext(os.path.basename(img_path))[0]
@@ -258,7 +258,7 @@ if __name__ == "__main__":
             val_scale, split_size, stride) for img_path, mask_path in zip(img_paths, mask_paths)]
 
     t0 = time.time()
-    mpp.Pool(processes=mp.cpu_count()).map(vaihingen_format, inp)
+    mpp.Pool(processes=mp.cpu_count()).map(floodnet_format, inp)
     t1 = time.time()
     split_time = t1 - t0
 
