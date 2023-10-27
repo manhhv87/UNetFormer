@@ -179,11 +179,11 @@ def car_aug(image, mask):
 def floodnet_format(inp):
     """
     Original image of FloodNet dataset is very large, thus pre-processing
-    of them is adopted. Given fixed clip size and stride size to generate
-    clipped image, the intersection of width and height is determined.
-    For example, given one 6800 x 7200 original image, the clip size is
-    256 and stride size is 256, thus it would generate 29 x 27 = 783 images
-    whose size are all 256 x 256.
+    of them is adopted. Given fixed split size and stride size to generate
+    splitted image, the intersection of width and height is determined.
+    For example, given one 4000 x 3000 original image, the split size is
+    1024 and stride size is 1024, thus it would generate 4 x 3 = 12 images
+    whose size are all 1024 x 1024.
     """
 
     (img_path, mask_path, imgs_output_dir, masks_output_dir,
