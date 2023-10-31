@@ -42,9 +42,10 @@ use_aux_loss = True
 # define the dataloader
 train_dataset = FloodNetDataset(
     data_root='data/floodnet/train', mode='train', mosaic_ratio=0.25, transform=train_aug)
-val_dataset = FloodNetDataset(transform=val_aug)
+val_dataset = FloodNetDataset(
+    data_root='data/floodnet/val', mode='train', transform=val_aug)
 test_dataset = FloodNetDataset(
-    data_root='data/floodnet/test', transform=val_aug)
+    data_root='data/floodnet/test')
 
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=train_batch_size,
@@ -59,6 +60,13 @@ val_loader = DataLoader(dataset=val_dataset,
                         shuffle=False,
                         pin_memory=True,
                         drop_last=False)
+
+test_loader = DataLoader(dataset=test_dataset,
+                         batch_size=test_batch_size,
+                         num_workers=2,
+                         shuffle=False,
+                         pin_memory=True,
+                         drop_last=False)
 
 # define the optimizer
 layerwise_params = {

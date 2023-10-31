@@ -39,6 +39,7 @@ class Supervision_Train(pl.LightningModule):
         self.loss = config.loss
         self.metrics_train = Evaluator(num_class=config.num_classes)
         self.metrics_val = Evaluator(num_class=config.num_classes)
+        self.metrics_test = Evaluator(num_class=config.num_classes)
 
     def forward(self, x):
         # only net is used in the prediction/inference
@@ -165,6 +166,61 @@ class Supervision_Train(pl.LightningModule):
         log_dict = {'val_mIoU': mIoU, 'val_F1': F1, 'val_OA': OA}
         self.log_dict(log_dict, prog_bar=True)
 
+    def test_step(self, batch, batch_idx):
+        img, mask = batch['img'], batch['gt_semantic_seg']
+        prediction = self.forward(img)
+        pre_mask = nn.Softmax(dim=1)(prediction)
+        pre_mask = pre_mask.argmax(dim=1)
+
+        for i in range(mask.shape[0]):
+            self.metrics_test.add_batch(
+                mask[i].cpu().numpy(), pre_mask[i].cpu().numpy())
+
+        loss_test = self.loss(prediction, mask)
+
+        return {"loss_test": loss_test}
+
+    def on_test_epoch_end(self):
+        if 'vaihingen' in self.config.log_name:
+            mIoU = np.nanmean(self.metrics_test.Intersection_over_Union()[:-1])
+            F1 = np.nanmean(self.metrics_test.F1()[:-1])
+        elif 'potsdam' in self.config.log_name:
+            mIoU = np.nanmean(self.metrics_test.Intersection_over_Union()[:-1])
+            F1 = np.nanmean(self.metrics_test.F1()[:-1])
+        elif 'whubuilding' in self.config.log_name:
+            mIoU = np.nanmean(self.metrics_test.Intersection_over_Union()[:-1])
+            F1 = np.nanmean(self.metrics_test.F1()[:-1])
+        elif 'massbuilding' in self.config.log_name:
+            mIoU = np.nanmean(self.metrics_test.Intersection_over_Union()[:-1])
+            F1 = np.nanmean(self.metrics_test.F1()[:-1])
+        elif 'cropland' in self.config.log_name:
+            mIoU = np.nanmean(self.metrics_test.Intersection_over_Union()[:-1])
+            F1 = np.nanmean(self.metrics_test.F1()[:-1])
+        elif 'floodnet' in self.config.log_name:
+            mIoU = np.nanmean(self.metrics_test.Intersection_over_Union()[:-1])
+            F1 = np.nanmean(self.metrics_test.F1()[:-1])
+        else:
+            mIoU = np.nanmean(self.metrics_test.Intersection_over_Union())
+            F1 = np.nanmean(self.metrics_test.F1())
+
+        OA = np.nanmean(self.metrics_test.OA())
+        iou_per_class = self.metrics_test.Intersection_over_Union()
+        eval_value = {'mIoU': mIoU,
+                      'F1': F1,
+                      'OA': OA}
+
+        print('test:', eval_value)
+
+        iou_value = {}
+        for class_name, iou in zip(self.config.classes, iou_per_class):
+            iou_value[class_name] = iou
+
+        print(iou_value)
+
+        self.metrics_test.reset()
+        log_dict = {'test_mIoU': mIoU, 'test_F1': F1, 'test_OA': OA}
+        self.log_dict(log_dict, prog_bar=True)
+
     def configure_optimizers(self):
         optimizer = self.config.optimizer
         lr_scheduler = self.config.lr_scheduler
@@ -176,6 +232,9 @@ class Supervision_Train(pl.LightningModule):
 
     def val_dataloader(self):
         return self.config.val_loader
+
+    def test_dataloader(self):
+        return self.config.test_loader
 
 
 # training
