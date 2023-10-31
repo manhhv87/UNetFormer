@@ -19,6 +19,7 @@ PALETTE = [[0, 0, 0], [255, 0, 0], [0, 255, 0], [0, 255, 120], [0, 0, 255], [255
 
 ORIGIN_IMG_SIZE = (1024, 1024)
 
+
 def get_training_transform():
     train_transform = [
         albu.RandomRotate90(p=0.5),
