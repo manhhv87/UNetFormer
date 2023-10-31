@@ -12,15 +12,12 @@ from PIL import Image
 import random
 from .transform import *
 
-CLASSES = ('BuildingFlooded', 'BuildingNonFlooded', 'RoadFlooded',
+CLASSES = ('Background', 'BuildingFlooded', 'BuildingNonFlooded', 'RoadFlooded',
            'RoadNonFlooded', 'Water', 'Tree', 'Vehicle', 'Pool', 'Grass')
-PALETTE = [[255, 0, 0], [0, 255, 0], [0, 255, 120], [0, 0, 255], [255, 0, 255],
+PALETTE = [[0, 0, 0], [255, 0, 0], [0, 255, 0], [0, 255, 120], [0, 0, 255], [255, 0, 255],
            [70, 70, 220], [102, 102, 156], [190, 153, 153], [180, 165, 180]]
 
 ORIGIN_IMG_SIZE = (1024, 1024)
-INPUT_IMG_SIZE = (1024, 1024)
-TEST_IMG_SIZE = (1024, 1024)
-
 
 def get_training_transform():
     train_transform = [
@@ -56,7 +53,7 @@ def val_aug(img, mask):
 
 
 class FloodNetDataset(Dataset):
-    def __init__(self, data_root='data/floodnet/test', mode='val', img_dir='images_1024', mask_dir='masks_1024',
+    def __init__(self, data_root='data/floodnet/train', mode='train', img_dir='images', mask_dir='masks',
                  img_suffix='.jpg', mask_suffix='.png', transform=val_aug, mosaic_ratio=0.0, img_size=ORIGIN_IMG_SIZE):
         self.data_root = data_root
         self.img_dir = img_dir
@@ -195,7 +192,7 @@ def show_img_mask_seg(seg_path, img_path, mask_path, start_seg_index):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         ax[i, 0].set_axis_off()
         ax[i, 0].imshow(img)
-        ax[i, 0].set_title('RS IMAGE ' + img_id)
+        ax[i, 0].set_title('IMAGE ' + img_id)
         ax[i, 1].set_axis_off()
         ax[i, 1].imshow(mask)
         ax[i, 1].set_title('Mask True ' + seg_id)
